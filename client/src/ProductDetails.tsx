@@ -16,12 +16,10 @@ function ProductDetails() {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<PinataItem | null>(null);
   
-  // Add wallet state
   const [account, setAccount] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Add wallet functions
   const connectWallet = async () => {
     if (window.ethereum) {
       try {

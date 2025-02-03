@@ -76,15 +76,14 @@ function AppContent() {
     const checkConnection = async () => {
       if (window.ethereum) {
         try {
-          // Get connected accounts
           const accounts = await window.ethereum.request({
-            method: "eth_accounts"  // This gets currently connected accounts
+            method: "eth_accounts"
           });
           
           if (accounts.length > 0) {
             setAccount(accounts[0]);
             setIsConnected(true);
-            // Optionally get the balance here too
+
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             const balance = await provider.getBalance(accounts[0]);
             setBalance(ethers.utils.formatEther(balance));
@@ -99,7 +98,7 @@ function AppContent() {
     fetchPinataItems();
   }, []);
 
-  // Add event listener for account changes
+  /* Listeners */
   useEffect(() => {
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', (accounts: string[]) => {
@@ -121,6 +120,7 @@ function AppContent() {
     };
   }, []);
 
+  /* Initialization */
   useEffect(() => {
     fetchPinataItems();
   }, []);
@@ -133,12 +133,12 @@ function AppContent() {
       const response = await fetch(`https://api.pinata.cloud/data/pinList?timestamp=${Date.now()}`, {
         method: "GET",
         headers: {
-          Authorization: `Bearer ${PINATA_JWT}`, // Use JWT for authentication
+          Authorization: `Bearer ${PINATA_JWT}`,
         },
       });
   
       const data = await response.json();
-      console.log("Pinata response:", data); // Debug log
+      console.log("Pinata response:", data);
   
       setNftItems(data.rows || []);
     } catch (error) {
@@ -146,7 +146,7 @@ function AppContent() {
     }
   };
 
-  // Calculate pagination
+  /* Pagination */
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = nftItems.slice(indexOfFirstItem, indexOfLastItem);
@@ -204,7 +204,6 @@ function AppContent() {
       </section>
 
       <div className="divider-line"></div>
-      {/* This is the product section */}
       <section id="product1" className="section-p1">
         <div className="pro-container">
           {currentItems.map((item) => (
