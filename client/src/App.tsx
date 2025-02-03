@@ -27,12 +27,12 @@ function AppContent() {
         setIsConnecting(false);
       }
     } else {
-      alert("MetaMask is not installed. Please install it to use this app!");
+      alert("MetaMask is not installed. Please install it to use this app");
     }
   };
 
   const disconnectWallet = async () => {
-    if (window.confirm('Are you sure you want to disconnect your wallet?')) {
+    if (window.confirm('Disconnect your wallet?')) {
       // Clear app state
       setAccount(null);
       setBalance(null);
