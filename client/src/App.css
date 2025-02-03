@@ -357,10 +357,11 @@ body {
 }
 
 #product1 .pro-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    padding-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 #product1 .pro {
@@ -427,24 +428,35 @@ body {
     right: 10px;
 }
 
-/* Pagination */
+/* Pagination Styles */
 #pagination {
-    text-align: center;
+  text-align: center;
+  margin-top: 40px;
 }
 
 #pagination a {
-    text-decoration: none;
-    background: #1e3a8a;
-    padding: 15px 20px;
-    border-radius: 4px;
-    color: #fff;
-    font-weight: 600;
-    margin: 0 5px;
+  text-decoration: none;
+  background-color: #1e3a8a;
+  padding: 15px 20px;
+  border-radius: 4px;
+  color: #fff;
+  font-weight: 600;
+  margin: 0 4px;
+  min-width: 50px;
+  display: inline-block;
 }
 
-#pagination a i {
-    font-size: 16px;
-    font-weight: 600;
+#pagination a.active {
+  background-color: #2d4ba0;
+}
+
+#pagination a:hover {
+  background-color: #2d4ba0;
+}
+
+#pagination a.nav-btn {
+  padding: 15px;
+  min-width: 50px;
 }
 
 .header-left {
@@ -472,4 +484,89 @@ body {
         rgba(30, 58, 138, 0.2),
         transparent
     );
+}
+
+/* Single Product */
+#prodetails {
+  display: flex;
+  margin-top: 20px;
+  gap: 40px;
+}
+
+#prodetails .single-pro-image {
+  width: 40%;
+  margin-right: 50px;
+}
+
+.single-pro-details {
+  width: 50%;
+  padding-top: 30px;
+}
+
+.single-pro-details h6 {
+  padding: 40px 0 20px 0;
+}
+
+.single-pro-details h4 {
+  padding: 40px 0 20px 0;
+  font-size: 22px;
+}
+
+.single-pro-details h2 {
+  font-size: 26px;
+}
+
+.single-pro-details select {
+  display: block;
+  padding: 5px 10px;
+  margin-bottom: 10px;
+}
+
+.single-pro-details input {
+  width: 50px;
+  height: 47px;
+  padding-left: 10px;
+  font-size: 16px;
+  margin-right: 10px;
+}
+
+.single-pro-details input:focus {
+  outline: none;
+}
+
+.single-pro-details button {
+  background: #1e3a8a;
+  color: #fff;
+}
+
+.single-pro-details span {
+  line-height: 25px;
+}
+
+.wallet-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;  /* Space between account text and button */
+}
+
+.wallet-section button {
+  padding: 10px 20px;  /* Taller and wider button */
+  font-size: 16px;     /* Same size as nav links */
+  min-width: 120px;    /* Minimum width */
+  border-radius: 4px;
+  border: none;
+  background: #2d4ba0;
+  color: #fff;
+  cursor: pointer;
+}
+
+.account-text {
+  font-size: 16px;  /* Same size as nav links */
+  color: #1a1a1a;
+}
+
+.wallet-section div {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
