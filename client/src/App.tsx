@@ -130,7 +130,7 @@ function AppContent() {
 
   const fetchPinataItems = async () => {
     try {
-      const response = await fetch(`https://api.pinata.cloud/data/pinList?timestamp=${Date.now()}`, {
+      const response = await fetch(`https://api.pinata.cloud/data/pinList?timestamp=${Date.now()}&pageLimit=100`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${PINATA_JWT}`,
