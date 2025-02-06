@@ -13,14 +13,17 @@ export function Toast({ message, isVisible, onHide, type = 'success' }: ToastPro
     if (isVisible) {
       const timer = setTimeout(() => {
         onHide();
-      }, 3000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [isVisible, onHide]);
 
   return (
     <div className={`toast ${isVisible ? 'show' : ''} ${type}`}>
-      {message}
+      <div className="toast-content">
+        <i className={`fas ${type === 'success' ? 'fa-check-circle' : 'fa-times-circle'}`}></i>
+        <span>{message}</span>
+      </div>
     </div>
   );
 } 

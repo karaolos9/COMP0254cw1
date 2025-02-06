@@ -3,13 +3,45 @@ import { Link } from 'react-router-dom';
 import { useCart } from './context/CartContext';
 import { useWallet } from './context/WalletContext';
 import { PinataImage } from './components/PinataImage';
+import { buyNFT } from './services/web3Service';
 
 function ShoppingCart() {
   const { account, isConnecting, isConnected, connectWallet, disconnectWallet } = useWallet();
   const { cartItems, removeFromCart, updateQuantity } = useCart();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const calculateSubtotal = () => {
     return cartItems.reduce((total, item) => total + item.price, 0);
+  };
+
+  const handleCheckout = async () => {
+    if (!isConnected) {
+      alert('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      
+      // Process each item in cart
+      for (const item of cartItems) {
+        try {
+          await buyNFT(item.id, item.price);
+          removeFromCart(item.id);
+        } catch (error) {
+          console.error(`Failed to purchase ${item.name}:`, error);
+          alert(`Failed to purchase ${item.name}. Please try again.`);
+          return;
+        }
+      }
+      
+      alert('All items purchased successfully!');
+    } catch (error) {
+      console.error('Checkout error:', error);
+      alert('Error during checkout. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -96,7 +128,13 @@ function ShoppingCart() {
               <td>{calculateSubtotal().toFixed(2)} ETH</td>
             </tr>
           </table>
-          <button className="normal">Proceed to checkout</button>
+          <button 
+            className="normal" 
+            onClick={handleCheckout}
+            disabled={!isConnected || isProcessing || cartItems.length === 0}
+          >
+            {isProcessing ? 'Processing...' : 'Proceed to checkout'}
+          </button>
         </div>
       </section>
     </div>

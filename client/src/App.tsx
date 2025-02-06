@@ -7,6 +7,9 @@ import { fetchPinataItems } from './api/pinataApi';
 import { PinataImage } from './components/PinataImage';
 import { useCart } from './context/CartContext';
 import { Toast } from './components/Toast';
+import { SearchBar } from './components/SearchBar';
+import { CartPanel } from './components/CartPanel';
+import { InlineProductDetails } from './components/InlineProductDetails';
 
 // Pinata Item Type
 interface PinataItem {
@@ -45,6 +48,21 @@ function AppContent() {
 
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [filteredItems, setFilteredItems] = useState<PinataItem[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+
+  // Add this state for wallet dropdown
+  const [showWalletInfo, setShowWalletInfo] = useState(false);
+
+  // Add state for cart panel
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // Add new state for selected product
+  const [selectedProduct, setSelectedProduct] = useState<PinataItem | null>(null);
+
+  const cartItemCount = cartItems.length;
 
   // Wallet
   const connectWallet = async () => {
@@ -158,28 +176,30 @@ function AppContent() {
   /* Pagination */
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = nftItems.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(nftItems.length / itemsPerPage);
+  const itemsToDisplay = isSearching ? filteredItems : nftItems;
+  const currentItems = itemsToDisplay.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(itemsToDisplay.length / itemsPerPage);
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
   };
 
-  const handleCardClick = (e: React.MouseEvent, ipfsHash: string) => {
-    // Don't navigate if clicking the cart button
+  const handleCardClick = (e: React.MouseEvent, item: PinataItem) => {
+    // Don't show details if clicking the cart button
     if (!(e.target as HTMLElement).closest('.cart-button')) {
-      navigate(`/product/${ipfsHash}`);
+      setSelectedProduct(item);
     }
   };
 
   const handleCartClick = (e: React.MouseEvent, item: PinataItem) => {
-    e.preventDefault(); // Prevent default anchor behavior
-    e.stopPropagation(); // Prevent card click
+    e.preventDefault();
+    e.stopPropagation();
     const isInCart = cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash);
     
     if (isInCart) {
       removeFromCart(item.ipfs_pin_hash);
       setToastMessage('Removed from cart');
+      setToastType('error');
     } else {
       addToCart({
         id: item.ipfs_pin_hash,
@@ -189,40 +209,116 @@ function AppContent() {
         quantity: 1
       });
       setToastMessage('Added to cart');
+      setToastType('success');
     }
     setShowToast(true);
+  };
+
+  const handleBuyNow = (e: React.MouseEvent, item: PinataItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Add to cart if not already there
+    if (!cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash)) {
+      addToCart({
+        id: item.ipfs_pin_hash,
+        image: `https://gateway.pinata.cloud/ipfs/${item.ipfs_pin_hash}`,
+        name: item.metadata?.name || 'Pokemon Card NFT',
+        price: 0.1,
+        quantity: 1
+      });
+      setToastMessage('Added to cart');
+      setToastType('success');
+      setShowToast(true);
+    }
+    
+    // Open cart panel
+    setIsCartOpen(true);
+  };
+
+  const handleSearch = (searchTerm: string, types: string[]) => {
+    setSelectedTypes(types);
+    
+    if (!searchTerm.trim() && types.length === 0) {
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const filtered = nftItems.filter(item => {
+      const nameMatch = !searchTerm.trim() || 
+        item.metadata?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const typeMatch = types.length === 0 || 
+        types.includes(item.metadata?.keyvalues?.Type || '');
+      
+      return nameMatch && typeMatch;
+    });
+    
+    setFilteredItems(filtered);
   };
 
   return (
     <div style={{ backgroundColor: '#fff' }}>
       <section id="header">
         <div className="header-left">
-          <a href="#">
-            <img 
-              src="/img/poke_ball.png" 
-              className="logo" 
-              alt="" 
-              width="64" 
-              height="57" 
-            />
-          </a>
+          <img 
+            src="/img/poke_ball.png" 
+            className="logo" 
+            alt="Pokeball" 
+            width="64" 
+            height="57" 
+          />
           <h1>Pokémon NFT Trading Site</h1>
         </div>
 
         <div>
           <ul id="navbar">
-            <li><a className="active" href="/">Home</a></li>
-            <li><a href="/about">About</a></li>
-            <li id="lg-bag"><Link to="/cart"><i className="far fa-shopping-bag"></i></Link></li>
+            <SearchBar onSearch={handleSearch} />
+            <li id="lg-bag">
+              <button 
+                className="cart-icon-container"
+                onClick={() => setIsCartOpen(true)}
+              >
+                <i className="far fa-shopping-bag"></i>
+                {cartItemCount > 0 && (
+                  <span className="cart-count">{cartItemCount}</span>
+                )}
+              </button>
+            </li>
             <div className="wallet-section">
               {!isConnected ? (
-                <button onClick={connectWallet} disabled={isConnecting}>
-                  {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+                <button onClick={connectWallet} disabled={isConnecting} className="wallet-button">
+                  <i className="fas fa-wallet"></i>
+                  <span>{isConnecting ? 'Connecting...' : 'Connect'}</span>
                 </button>
               ) : (
-                <div>
-                  <span className="account-text">Connected: {account?.slice(0, 6)}...{account?.slice(-4)}</span>
-                  <button onClick={disconnectWallet}>Disconnect</button>
+                <div className="wallet-connected">
+                  <button 
+                    className="wallet-info-button"
+                    onClick={() => setShowWalletInfo(!showWalletInfo)}
+                  >
+                    <i className="fas fa-wallet"></i>
+                    <span>Connected</span>
+                    <i className={`fas fa-chevron-${showWalletInfo ? 'up' : 'down'}`}></i>
+                  </button>
+                  
+                  {showWalletInfo && (
+                    <div className="wallet-dropdown">
+                      <div className="wallet-address">
+                        <span>Address:</span>
+                        <p>{account?.slice(0, 6)}...{account?.slice(-4)}</p>
+                      </div>
+                      <div className="wallet-balance">
+                        <span>Balance:</span>
+                        <p>{balance ? `${Number(balance).toFixed(4)} ETH` : 'Loading...'}</p>
+                      </div>
+                      <button onClick={disconnectWallet} className="disconnect-button">
+                        <i className="fas fa-sign-out-alt"></i>
+                        <span>Disconnect</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -236,18 +332,18 @@ function AppContent() {
 
       </section>
 
-      <section id="hero">
+      {/* <section id="hero">
         <h2>Trade Pokémon NFTs Now!</h2>
-      </section>
+      </section> */}
 
-      <div className="divider-line"></div>
+      {/* <div className="divider-line"></div> */}
       <section id="product1" className="section-p1">
         <div className="pro-container">
           {currentItems.map((item) => (
             <div 
               key={item.ipfs_pin_hash} 
               className="pro"
-              onClick={(e) => handleCardClick(e, item.ipfs_pin_hash)}
+              onClick={(e) => handleCardClick(e, item)}
             >
               <PinataImage 
                 hash={item.ipfs_pin_hash}
@@ -265,16 +361,25 @@ function AppContent() {
                 </div>
                 <h4>0.1 ETH</h4>
               </div>
-              <a 
-                href="#!"
-                className={`cart-button ${cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) ? 'in-cart' : ''}`}
-                onClick={(e) => handleCartClick(e, item)}
-              >
-                <i className="fal fa-shopping-cart cart"></i>
-                {cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) && (
-                  <div className="slash"></div>
-                )}
-              </a>
+              <div className="button-group">
+                <a 
+                  href="#!"
+                  className={`cart-button ${cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) ? 'in-cart' : ''}`}
+                  onClick={(e) => handleCartClick(e, item)}
+                >
+                  <i className="fal fa-shopping-cart cart"></i>
+                  {cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) && (
+                    <div className="slash"></div>
+                  )}
+                </a>
+                <a 
+                  href="#!"
+                  className="buy-now-button"
+                  onClick={(e) => handleBuyNow(e, item)}
+                >
+                  Buy Now
+                </a>
+              </div>
             </div>
           ))}
         </div>
@@ -322,10 +427,30 @@ function AppContent() {
         )}
       </section>
 
+      {isSearching && filteredItems.length === 0 && (
+        <div className="no-results">
+          <h2>No Pokemon NFT found</h2>
+        </div>
+      )}
+
+      {selectedProduct && (
+        <InlineProductDetails
+          ipfsHash={selectedProduct.ipfs_pin_hash}
+          metadata={selectedProduct.metadata}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
+
       <Toast 
         message={toastMessage}
         isVisible={showToast}
         onHide={() => setShowToast(false)}
+        type={toastType}
+      />
+
+      <CartPanel 
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
       />
 
     </div>

@@ -11,6 +11,7 @@ body {
     margin: 0;
     padding: 0;
     width: 100%;
+    background-color: #fff;
 }
 
 html {
@@ -89,6 +90,7 @@ button.white {
     padding: 0;
     max-width: none;
     width: 100%;
+    background-color: #fff;
 }
 
 /* Header */
@@ -98,24 +100,37 @@ button.white {
     justify-content: space-between;
     padding: 20px 80px;
     background: #E3E6F3;
-    position: sticky;
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     z-index: 999;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.06);
+    box-shadow: none;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.header-left h1 {
+    margin: 0;
+    font-size: 24px;
+    white-space: nowrap;
 }
 
 #navbar {
     display: flex;
     align-items: center;
     justify-content: center;
+    margin: 0;
+    padding: 0;
 }
 
 #navbar li {
     list-style: none;
     padding: 0 20px;
-    position: relative;
 }
 
 #navbar li a {
@@ -133,13 +148,7 @@ button.white {
 
 #navbar li a.active::after,
 #navbar li a:hover::after {
-    content: "";
-    width: 30%;
-    height: 2px;
-    background: #1e3a8a;
-    position: absolute;
-    bottom: -4px;
-    left: 20px;
+    display: none;
 }
 
 /* Login button styles */
@@ -356,6 +365,9 @@ button.white {
 /* Product Section */
 #product1 {
     text-align: center;
+    padding-top: 120px;
+    min-height: calc(100vh - 120px);
+    background: #fff;
 }
 
 #product1 .pro-container {
@@ -417,6 +429,33 @@ button.white {
     color: #1e3a8a;
 }
 
+#product1 .pro .button-group {
+    position: absolute;
+    bottom: 20px;
+    right: 10px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.buy-now-button {
+    background: #1e3a8a;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.buy-now-button:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+}
+
+/* Cart button styles */
 #product1 .pro .cart-button {
     width: 40px;
     height: 40px;
@@ -426,9 +465,11 @@ button.white {
     font-weight: 500;
     color: #1e3a8a;
     border: 1px solid #1e3a8a;
-    position: absolute;
-    bottom: 20px;
-    right: 10px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
 }
 
 #product1 .pro .cart-button:hover {
@@ -436,12 +477,31 @@ button.white {
     color: #fff;
 }
 
-/* Make sure the cart icon is centered in the button */
+/* Make sure the cart icon is centered */
 #product1 .pro .cart-button i {
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100%;
+}
+
+/* Keep the slash styling for in-cart items */
+.cart-button.in-cart {
+    opacity: 0.7;
+}
+
+.cart-button .slash {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 120%;
+    height: 2px;
+    background-color: #1e3a8a;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.cart-button:hover .slash {
+    background-color: #fff;
 }
 
 /* Pagination Styles */
@@ -473,33 +533,6 @@ button.white {
 #pagination a.nav-btn {
   padding: 15px;
   min-width: 50px;
-}
-
-.header-left {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.header-left h1 {
-    font-size: 24px;
-    color: #1e3a8a;
-    margin: 0;
-}
-
-/* Divider line with light effect */
-.divider-line {
-    width: 70%;
-    height: 1px;
-    margin: 20px auto;
-    background: linear-gradient(
-        to right,
-        transparent,
-        rgba(30, 58, 138, 0.2),
-        rgba(255, 255, 255, 0.5),
-        rgba(30, 58, 138, 0.2),
-        transparent
-    );
 }
 
 /* Single Product */
@@ -560,31 +593,115 @@ button.white {
 }
 
 .wallet-section {
-  display: flex;
-  align-items: center;
-  gap: 15px;  /* Space between account text and button */
+  position: relative;
+  margin-left: 15px;
 }
 
-.wallet-section button {
-  padding: 10px 20px;  /* Taller and wider button */
-  font-size: 16px;     /* Same size as nav links */
-  min-width: 120px;    /* Minimum width */
-  border-radius: 4px;
+.wallet-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #1e3a8a;
+  color: white;
   border: none;
-  background: #2d4ba0;
-  color: #fff;
+  border-radius: 20px;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.account-text {
-  font-size: 16px;  /* Same size as nav links */
-  color: #1a1a1a;
+.wallet-button:hover {
+  background: #2563eb;
 }
 
-.wallet-section div {
+.wallet-connected {
+  position: relative;
+}
+
+.wallet-info-button {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #10B981;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.wallet-info-button:hover {
+  background: #059669;
+}
+
+.wallet-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  min-width: 220px;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.wallet-address,
+.wallet-balance {
+  margin-bottom: 12px;
+}
+
+.wallet-address span,
+.wallet-balance span {
+  color: #6B7280;
+  font-size: 14px;
+}
+
+.wallet-address p,
+.wallet-balance p {
+  color: #1e3a8a;
+  font-weight: 600;
+  margin: 4px 0;
+}
+
+.disconnect-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  background: #EF4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 8px;
+}
+
+.disconnect-button:hover {
+  background: #DC2626;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Update type filter styles */
+.clear-types-button {
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 /* Cart Page */
@@ -599,6 +716,7 @@ button.white {
   padding: 0;
   min-height: 100vh;
   background-color: #fff;
+  padding-top: 120px;
 }
 
 #cart table {
@@ -753,4 +871,47 @@ button.white {
 
 .cart-button:hover .slash {
   background-color: #fff;
+}
+
+.no-results {
+  text-align: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #1e3a8a;
+  width: 100%;
+  background: #fff;
+}
+
+.no-results h2 {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.cart-icon-container {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+#navbar li#lg-bag button {
+  color: #1a1a1a;
+  transition: color 0.3s;
+}
+
+#navbar li#lg-bag button:hover {
+  color: #1e3a8a;
+}
+
+/* Update logo styles */
+.logo {
+  cursor: default;
+  user-select: none;
 }
