@@ -402,8 +402,11 @@ button.white {
 }
 
 #product1 .pro .des {
+    padding: 15px;
     text-align: start;
-    padding: 10px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 #product1 .pro .des span {
@@ -411,78 +414,58 @@ button.white {
     font-size: 12px;
 }
 
-#product1 .pro .des h5 {
-    padding-top: 7px;
-    color: #1a1a1a;
-    font-size: 14px;
+.name-price {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-#product1 .pro .des i {
-    font-size: 12px;
-    color: rgb(243, 181, 25);
+#product1 .pro .des h5 {
+    color: #1a1a1a;
+    font-size: 14px;
+    margin: 0;
 }
 
 #product1 .pro .des h4 {
-    padding-top: 7px;
     font-size: 15px;
     font-weight: 700;
     color: #1e3a8a;
+    margin: 0;
 }
 
-#product1 .pro .button-group {
-    position: absolute;
-    bottom: 20px;
-    right: 10px;
+.button-group {
     display: flex;
+    justify-content: center;
     gap: 10px;
-    align-items: center;
+    margin-top: 10px;
+    padding: 0 15px;
 }
 
-.buy-now-button {
-    background: #1e3a8a;
-    color: white;
-    padding: 8px 15px;
-    border-radius: 4px;
-    border: none;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    text-decoration: none;
-}
-
-.buy-now-button:hover {
-    background: #2563eb;
-    transform: translateY(-2px);
-}
-
-/* Cart button styles */
-#product1 .pro .cart-button {
-    width: 40px;
+#product1 .pro .cart-button,
+#product1 .pro .buy-now-button {
     height: 40px;
-    line-height: 40px;
-    border-radius: 50px;
-    background-color: #e8f0ff;
-    font-weight: 500;
-    color: #1e3a8a;
-    border: 1px solid #1e3a8a;
-    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+#product1 .pro .buy-now-button {
+    padding: 0 20px;
+    white-space: nowrap;
+}
+
+#product1 .pro .cart-button {
+    width: 40px;
+    border-radius: 50px;
+    background-color: #e8f0ff;
+    color: #1e3a8a;
+    border: 1px solid #1e3a8a;
     transition: all 0.3s ease;
 }
 
 #product1 .pro .cart-button:hover {
     background-color: #1e3a8a;
     color: #fff;
-}
-
-/* Make sure the cart icon is centered */
-#product1 .pro .cart-button i {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
 }
 
 /* Keep the slash styling for in-cart items */

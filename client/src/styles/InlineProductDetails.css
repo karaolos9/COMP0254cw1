@@ -104,6 +104,145 @@
   line-height: 1.6;
 }
 
+.product-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 24px;
+}
+
+.add-to-cart-button,
+.buy-now-button,
+.auction-button,
+.place-bid-button {
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.add-to-cart-button {
+  background: #fff;
+  color: #1e3a8a;
+  border: 2px solid #1e3a8a;
+  transition: all 0.3s ease;
+}
+
+.add-to-cart-button:hover {
+  background: #f0f4ff;
+}
+
+/* Style for when item is in cart */
+.add-to-cart-button span {
+  color: #ef4444;
+}
+
+.add-to-cart-button:hover span {
+  opacity: 0.8;
+}
+
+.buy-now-button,
+.auction-button,
+.place-bid-button {
+  background: #1e3a8a;
+  color: white;
+  border: none;
+}
+
+.buy-now-button:hover,
+.auction-button:hover,
+.place-bid-button:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.place-bid input {
+  flex: 1;
+  padding: 10px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 16px;
+  transition: all 0.3s ease;
+  background: white;
+  color: #000;
+}
+
+.place-bid input::placeholder {
+  color: #6B7280;
+}
+
+.place-bid {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.auction-section {
+  border-top: 1px solid #e5e7eb;
+  margin-top: 30px;
+  padding: 30px 40px;
+}
+
+.auction-section h3 {
+  color: #1e3a8a;
+  margin-bottom: 20px;
+}
+
+.current-bids {
+  margin-bottom: 24px;
+}
+
+.current-bids h4 {
+  color: #4B5563;
+  margin-bottom: 12px;
+}
+
+.bids-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bid-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.bid-address {
+  color: #1e3a8a;
+  font-family: monospace;
+}
+
+.bid-amount {
+  color: #059669;
+  font-weight: 600;
+}
+
+.bid-time {
+  color: #6B7280;
+  font-size: 14px;
+}
+
+.place-bid-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.no-bids {
+  text-align: center;
+  color: #6B7280;
+  padding: 20px;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -143,6 +282,26 @@
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes zoomOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
   }
 }
 

@@ -237,24 +237,18 @@ function AppContent() {
   };
 
   const handleSearch = (searchTerm: string, types: string[]) => {
-    setSelectedTypes(types);
+    // Reset to page 1 when searching or filtering
+    setCurrentPage(1);
     
-    if (!searchTerm.trim() && types.length === 0) {
-      setIsSearching(false);
-      return;
-    }
-
     setIsSearching(true);
+    const searchTermLower = searchTerm.toLowerCase();
     const filtered = nftItems.filter(item => {
-      const nameMatch = !searchTerm.trim() || 
-        item.metadata?.name?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+      const nameMatch = item.metadata?.name?.toLowerCase().includes(searchTermLower);
       const typeMatch = types.length === 0 || 
-        types.includes(item.metadata?.keyvalues?.Type || '');
-      
+        (item.metadata?.keyvalues?.Type && 
+         types.includes(item.metadata.keyvalues.Type));
       return nameMatch && typeMatch;
     });
-    
     setFilteredItems(filtered);
   };
 
@@ -351,15 +345,10 @@ function AppContent() {
               />
               <div className="des">
                 <span>{item.metadata?.keyvalues?.Type || 'Type'}</span>
-                <h5>{item.metadata?.name || 'Pokemon Card NFT'}</h5>
-                <div className="star">
-                  <i className="fas fa-star"></i>
-                  <i className="fas fa-star"></i>
-                  <i className="fas fa-star"></i>
-                  <i className="fas fa-star"></i>
-                  <i className="fas fa-star"></i>
+                <div className="name-price">
+                  <h5>{item.metadata?.name || 'Pokemon Card NFT'}</h5>
+                  <h4>0.1 ETH</h4>
                 </div>
-                <h4>0.1 ETH</h4>
               </div>
               <div className="button-group">
                 <a 
@@ -438,6 +427,7 @@ function AppContent() {
           ipfsHash={selectedProduct.ipfs_pin_hash}
           metadata={selectedProduct.metadata}
           onClose={() => setSelectedProduct(null)}
+          onCartOpen={() => setIsCartOpen(true)}
         />
       )}
 

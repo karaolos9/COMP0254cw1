@@ -107,6 +107,43 @@
   background-color: #f0f4ff;
 }
 
+/* Add custom checkbox styling */
+.type-option input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #1e3a8a;
+  border-radius: 3px;
+  background: white;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+/* Checkbox checked state */
+.type-option input[type="checkbox"]:checked {
+  background: white;
+}
+
+/* Custom checkmark */
+.type-option input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid #1e3a8a;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* Hover state */
+.type-option:hover input[type="checkbox"] {
+  border-color: #2563eb;
+}
+
 .type-badge {
   padding: 2px 8px;
   border-radius: 12px;
