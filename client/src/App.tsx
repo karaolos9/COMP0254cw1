@@ -1,8 +1,14 @@
 import './App.css'
-import { MetaMaskUIProvider, useSDK } from "@metamask/sdk-react-ui"
+import { MetaMaskUIProvider, useSDK, SDKProvider } from "@metamask/sdk-react-ui"
 import React, { useState, useEffect } from "react";
 import { ethers } from "ethers";
+import { Link, useNavigate } from "react-router-dom";
+import { fetchPinataItems } from './api/pinataApi';
+import { PinataImage } from './components/PinataImage';
+import { useCart } from './context/CartContext';
+import { Toast } from './components/Toast';
 
+// Pinata Item Type
 interface PinataItem {
   ipfs_pin_hash: string;
   metadata?: {
@@ -13,9 +19,18 @@ interface PinataItem {
   };
 }
 
+// Ethereum
+
+declare global {
+  interface Window {
+    ethereum?: SDKProvider;
+  }
+}
+
 function AppContent() {
-  // const { connected, connecting, account } = useSDK();
+  const navigate = useNavigate();
   const { sdk } = useSDK();
+  const { addToCart, removeFromCart, cartItems } = useCart();
 
   const [account, setAccount] = useState<string | null>(null);
   const [balance, setBalance] = useState<string | null>(null);
@@ -25,6 +40,12 @@ function AppContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // 4 items per row × 2 rows
   
+  const PINATA_JWT = import.meta.env.VITE_PINATA_JWT_ADMIN
+  const PINATA_GATEWAY = "https://gateway.pinata.cloud/ipfs/";
+
+  const [toastMessage, setToastMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
+
   // Wallet
   const connectWallet = async () => {
     if (window.ethereum) {
@@ -95,7 +116,7 @@ function AppContent() {
     };
 
     checkConnection();
-    fetchPinataItems();
+    loadPinataItems();
   }, []);
 
   /* Listeners */
@@ -122,24 +143,12 @@ function AppContent() {
 
   /* Initialization */
   useEffect(() => {
-    fetchPinataItems();
+    loadPinataItems();
   }, []);
 
-  const PINATA_JWT = import.meta.env.VITE_PINATA_JWT_ADMIN
-  const PINATA_GATEWAY = "https://gateway.pinata.cloud/ipfs/";
-
-  const fetchPinataItems = async () => {
+  const loadPinataItems = async () => {
     try {
-      const response = await fetch(`https://api.pinata.cloud/data/pinList?timestamp=${Date.now()}&pageLimit=100`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${PINATA_JWT}`,
-        },
-      });
-  
-      const data = await response.json();
-      console.log("Pinata response:", data);
-  
+      const data = await fetchPinataItems();
       setNftItems(data.rows || []);
     } catch (error) {
       console.error("Error fetching Pinata items:", error);
@@ -154,6 +163,34 @@ function AppContent() {
 
   const handlePageChange = (pageNumber: number) => {
     setCurrentPage(pageNumber);
+  };
+
+  const handleCardClick = (e: React.MouseEvent, ipfsHash: string) => {
+    // Don't navigate if clicking the cart button
+    if (!(e.target as HTMLElement).closest('.cart-button')) {
+      navigate(`/product/${ipfsHash}`);
+    }
+  };
+
+  const handleCartClick = (e: React.MouseEvent, item: PinataItem) => {
+    e.preventDefault(); // Prevent default anchor behavior
+    e.stopPropagation(); // Prevent card click
+    const isInCart = cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash);
+    
+    if (isInCart) {
+      removeFromCart(item.ipfs_pin_hash);
+      setToastMessage('Removed from cart');
+    } else {
+      addToCart({
+        id: item.ipfs_pin_hash,
+        image: `https://gateway.pinata.cloud/ipfs/${item.ipfs_pin_hash}`,
+        name: item.metadata?.name || 'Pokemon Card NFT',
+        price: 0.1,
+        quantity: 1
+      });
+      setToastMessage('Added to cart');
+    }
+    setShowToast(true);
   };
 
   return (
@@ -176,7 +213,7 @@ function AppContent() {
           <ul id="navbar">
             <li><a className="active" href="/">Home</a></li>
             <li><a href="/about">About</a></li>
-            <li id="lg-bag"><a href="/cart"><i className="far fa-shopping-bag"></i></a></li>
+            <li id="lg-bag"><Link to="/cart"><i className="far fa-shopping-bag"></i></Link></li>
             <div className="wallet-section">
               {!isConnected ? (
                 <button onClick={connectWallet} disabled={isConnecting}>
@@ -207,9 +244,13 @@ function AppContent() {
       <section id="product1" className="section-p1">
         <div className="pro-container">
           {currentItems.map((item) => (
-            <div key={item.ipfs_pin_hash} className="pro">
-              <img 
-                src={`https://gateway.pinata.cloud/ipfs/${item.ipfs_pin_hash}`} 
+            <div 
+              key={item.ipfs_pin_hash} 
+              className="pro"
+              onClick={(e) => handleCardClick(e, item.ipfs_pin_hash)}
+            >
+              <PinataImage 
+                hash={item.ipfs_pin_hash}
                 alt="NFT Item"
               />
               <div className="des">
@@ -224,8 +265,15 @@ function AppContent() {
                 </div>
                 <h4>0.1 ETH</h4>
               </div>
-              <a href={`/product/${item.ipfs_pin_hash}`}>
+              <a 
+                href="#!"
+                className={`cart-button ${cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) ? 'in-cart' : ''}`}
+                onClick={(e) => handleCartClick(e, item)}
+              >
                 <i className="fal fa-shopping-cart cart"></i>
+                {cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) && (
+                  <div className="slash"></div>
+                )}
               </a>
             </div>
           ))}
@@ -273,6 +321,12 @@ function AppContent() {
           </a>
         )}
       </section>
+
+      <Toast 
+        message={toastMessage}
+        isVisible={showToast}
+        onHide={() => setShowToast(false)}
+      />
 
     </div>
   );

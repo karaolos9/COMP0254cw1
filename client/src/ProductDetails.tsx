@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useCart } from './context/CartContext';
+import { useWallet } from './context/WalletContext';
+import { fetchPinataItemById } from './api/pinataApi';
+import { PinataImage } from './components/PinataImage';
 
 interface PinataItem {
   ipfs_pin_hash: string;
@@ -16,85 +20,38 @@ function ProductDetails() {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<PinataItem | null>(null);
   
-  const [account, setAccount] = useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+  const { account, isConnecting, isConnected, connectWallet, disconnectWallet } = useWallet();
+  const { addToCart } = useCart();
 
-  const connectWallet = async () => {
-    if (window.ethereum) {
-      try {
-        setIsConnecting(true);
-        const accounts = await window.ethereum.request({
-          method: "eth_requestAccounts",
-        });
-        setAccount(accounts[0]);
-        setIsConnected(true);
-      } catch (error) {
-        console.error("Error connecting to wallet:", error);
-      } finally {
-        setIsConnecting(false);
-      }
-    } else {
-      alert("MetaMask is not installed. Please install it to use this app");
-    }
-  };
-
-  const disconnectWallet = async () => {
-    if (window.confirm('Disconnect your wallet?')) {
-      setAccount(null);
-      setIsConnected(false);
-      if (window.ethereum) {
-        await window.ethereum.request({
-          method: "wallet_requestPermissions",
-          params: [{ eth_accounts: {} }],
-        });
-      }
-    }
-  };
-
-  // Check wallet connection on mount
   useEffect(() => {
-    const checkConnection = async () => {
-      if (window.ethereum) {
+    const loadProductDetails = async () => {
+      if (id) {
         try {
-          const accounts = await window.ethereum.request({
-            method: "eth_accounts"
-          });
-          if (accounts.length > 0) {
-            setAccount(accounts[0]);
-            setIsConnected(true);
+          const productData = await fetchPinataItemById(id);
+          if (productData) {
+            setProduct(productData);
           }
         } catch (error) {
-          console.error("Error checking connection:", error);
+          console.error("Error fetching product details:", error);
         }
       }
     };
 
-    checkConnection();
-  }, []);
-
-  useEffect(() => {
-    const fetchProductDetails = async () => {
-      try {
-        const PINATA_JWT = import.meta.env.VITE_PINATA_JWT_ADMIN;
-        const response = await fetch(`https://api.pinata.cloud/data/pinList?hashContains=${id}`, {
-          headers: {
-            Authorization: `Bearer ${PINATA_JWT}`,
-          },
-        });
-        const data = await response.json();
-        if (data.rows && data.rows.length > 0) {
-          setProduct(data.rows[0]);
-        }
-      } catch (error) {
-        console.error("Error fetching product details:", error);
-      }
-    };
-
-    if (id) {
-      fetchProductDetails();
-    }
+    loadProductDetails();
   }, [id]);
+
+  const handleAddToCart = () => {
+    if (product) {
+      addToCart({
+        id: product.ipfs_pin_hash,
+        image: `https://gateway.pinata.cloud/ipfs/${product.ipfs_pin_hash}`,
+        name: product.metadata?.name || 'Pokemon Card NFT',
+        price: 0.1,
+        quantity: 1
+      });
+      alert('Item added to cart!');
+    }
+  };
 
   if (!product) {
     return <div>Loading...</div>;
@@ -144,11 +101,10 @@ function ProductDetails() {
     </section>
     <section id="prodetails" className="section-p1">
       <div className="single-pro-image">
-        <img 
-          src={`https://gateway.pinata.cloud/ipfs/${product.ipfs_pin_hash}`} 
-          width="100%" 
-          id="MainImg" 
-          alt=""
+        <PinataImage 
+          hash={product.ipfs_pin_hash}
+          alt={product.metadata?.name || 'NFT Item'}
+          style={{ width: '100%' }}
         />
       </div>
 
@@ -158,8 +114,7 @@ function ProductDetails() {
         <h3>{'Type: ' + product.metadata?.keyvalues?.Type || 'Type'}</h3>
         <div style={{ marginBottom: '40px' }}></div> 
         <h2>0.1 ETH</h2>
-        <input type="number" value="1" />
-        <button className="normal">Add To Cart</button>
+        <button className="normal" onClick={handleAddToCart}>Add To Cart</button>
         <h4>Product Details</h4>
         <span>{product.metadata?.keyvalues?.Details || 'No details available'}</span>
       </div>
