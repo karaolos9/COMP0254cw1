@@ -10,7 +10,7 @@ interface CartPanelProps {
 
 export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
   const { cartItems, removeFromCart, clearCart } = useCart();
-  const total = cartItems.reduce((sum, item) => sum + item.price, 0);
+  const total = cartItems.reduce((sum, item) => sum + (item.price || 0), 0);
   const itemCount = cartItems.length;
 
   return (
@@ -53,7 +53,7 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
                   </div>
                   <div className="item-details">
                     <h3>{item.name}</h3>
-                    <p>{item.price} ETH</p>
+                    <p>{item.price || 'Not Listed'} {item.price ? 'ETH' : ''}</p>
                   </div>
                   <button 
                     className="remove-item"
@@ -71,7 +71,7 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
           <div className="cart-footer">
             <div className="cart-total">
               <span>Total:</span>
-              <span>{total.toFixed(2)} ETH</span>
+              <span>{total.toFixed(4)} ETH</span>
             </div>
             <button className="checkout-button">
               Purchase NFTs

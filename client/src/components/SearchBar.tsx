@@ -24,7 +24,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
           className="search-input"
         />
         <button type="submit" className="search-button">
-          <i className="fas fa-search"></i>
+          <i className="fas fa-magnifying-glass"></i>
         </button>
       </form>
     </div>

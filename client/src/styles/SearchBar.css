@@ -44,6 +44,30 @@
   color: #2563eb;
 }
 
+/* New cart icon button styles */
+.cart-icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.cart-icon-button:hover {
+  background-color: var(--secondary-color);
+}
+
+.cart-icon-button i {
+  color: var(--background-color);
+  font-size: 1.2rem;
+}
+
 .type-filter {
   position: relative;
   margin-top: 8px;

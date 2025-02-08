@@ -7,10 +7,12 @@ import { PinataImage } from './components/PinataImage';
 import { useCart } from './context/CartContext';
 import { Toast } from './components/Toast';
 import { SearchBar } from './components/SearchBar';
+import { CONTRACT_ABIS } from './config';
 
 // Lazy load components
 const CartPanel = lazy(() => import('./components/CartPanel'));
 const InlineProductDetails = lazy(() => import('./components/InlineProductDetails'));
+const Profile = lazy(() => import('./components/Profile'));
 
 // Interface for Pinata NFT item structure
 interface PinataItem {
@@ -26,6 +28,7 @@ interface PinataItem {
 
 // Add these near the top of your AppContent component
 const NFT_CONTRACT_ADDRESS = "0xC252E988c7dE8a2BFbf6cE0a1A92FECE5A74C4D1";
+const TRADING_CONTRACT_ADDRESS = "0xD04E7654B270cec62377610643bbB0FB8a93FcB9";
 
 // Add these new interfaces
 interface FilterState {
@@ -59,6 +62,13 @@ const pokemonTypes = [
   'Steel',
   'Fairy'
 ];
+
+interface NFTListing {
+  tokenId: string;
+  price: string;
+  seller: string;
+  isAuction: boolean;
+}
 
 /**
  * Main content component containing all the application logic and UI
@@ -118,6 +128,11 @@ function AppContent() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const cartItemCount = cartItems.length;
+
+  // Add this to your AppContent component state
+  const [currentView, setCurrentView] = useState('main'); // 'main' or 'profile'
+
+  const [listedNFTs, setListedNFTs] = useState<NFTListing[]>([]);
 
   /**
    * Wallet Connection Handler
@@ -233,6 +248,7 @@ function AppContent() {
   /* Initialization */
   useEffect(() => {
     loadPinataItems();
+    fetchListedNFTs();
   }, []);
 
   const checkNFTOwnership = async (items: PinataItem[]) => {
@@ -323,12 +339,14 @@ function AppContent() {
   }, [account]);
 
   /* Pagination */
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const itemsToDisplay = isSearching ? filteredItems : nftItems;
-
-  const handlePageChange = (pageNumber: number) => {
-    setCurrentPage(pageNumber);
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const displayItems = nftItems.filter(item => {
+      const listing = listedNFTs.find(nft => nft.tokenId === item.ipfs_pin_hash);
+      return listing !== undefined;
+    });
+    const startIndex = (page - 1) * itemsPerPage;
+    setCurrentItems(displayItems.slice(startIndex, startIndex + itemsPerPage));
   };
 
   /**
@@ -360,7 +378,7 @@ function AppContent() {
         id: item.ipfs_pin_hash,
         image: `https://gateway.pinata.cloud/ipfs/${item.ipfs_pin_hash}`,
         name: item.metadata?.name || 'Pokemon Card NFT',
-        price: 0.1,
+        price: (item as any).price ? parseFloat((item as any).price) : 0,
         quantity: 1
       });
       setToastMessage('Added to cart');
@@ -379,7 +397,7 @@ function AppContent() {
         id: item.ipfs_pin_hash,
         image: `https://gateway.pinata.cloud/ipfs/${item.ipfs_pin_hash}`,
         name: item.metadata?.name || 'Pokemon Card NFT',
-        price: 0.1,
+        price: (item as any).price ? parseFloat((item as any).price) : 0,
         quantity: 1
       });
       setToastMessage('Added to cart');
@@ -417,9 +435,9 @@ function AppContent() {
     }));
   };
 
-  // Update the filter function
+  // Update the getFilteredItems function
   const getFilteredItems = () => {
-    return nftItems.filter(item => {
+    return (currentView === 'main' ? filteredItems : nftItems).filter(item => {
       // Search filter
       if (searchTerm) {
         const itemName = item.metadata?.name?.toLowerCase() || '';
@@ -428,20 +446,30 @@ function AppContent() {
         }
       }
 
-      // Status filter
-      if (filters.status !== 'all') {
-        // Add your status check logic here
+      // Owner filter - only apply on main view
+      if (currentView === 'main') {
+        if (filters.owner === 'me' && !item.isOwned) {
+          return false;
+        }
       }
 
-      // Owner filter
-      if (filters.owner === 'me' && !item.isOwned) {
-        return false;
+      // Status filter
+      if (filters.status !== 'all') {
+        const listing = listedNFTs.find(nft => nft.tokenId === item.ipfs_pin_hash);
+        if (filters.status === 'listed' && !listing) {
+          return false;
+        }
+        if (filters.status === 'auction' && (!listing || !listing.isAuction)) {
+          return false;
+        }
       }
 
       // Price filter
-      const price = 0.1; // Replace with actual price from your item
-      if (filters.priceRange.min && price < filters.priceRange.min) return false;
-      if (filters.priceRange.max && price > filters.priceRange.max) return false;
+      if (filters.priceRange.min || filters.priceRange.max) {
+        const price = (item as any).price ? parseFloat((item as any).price) : 0;
+        if (filters.priceRange.min && price < filters.priceRange.min) return false;
+        if (filters.priceRange.max && price > filters.priceRange.max) return false;
+      }
 
       // Type filter
       if (filters.types.length > 0) {
@@ -455,15 +483,35 @@ function AppContent() {
     });
   };
 
-  // Update useEffect to apply filters and update pagination
+  // Update the filtering logic for the main page
   useEffect(() => {
-    const filtered = getFilteredItems();
-    console.log("Filtered items:", filtered);
-    console.log("Current filters:", filters);
-    setFilteredItems(filtered);
-    setTotalPages(Math.ceil(filtered.length / itemsPerPage));
-    setCurrentPage(1);
-  }, [nftItems, filters, searchTerm, itemsPerPage]);
+    if (currentView === 'main') {
+      let displayItems = nftItems;
+
+      if (filters.owner === 'me') {
+        // When "My NFTs" is selected, show only owned NFTs
+        displayItems = nftItems.filter(item => item.isOwned);
+      } else {
+        // When "All" is selected, show only listed NFTs
+        displayItems = nftItems.filter(item => {
+          const listing = listedNFTs.find(nft => nft.tokenId === item.ipfs_pin_hash);
+          if (listing) {
+            (item as any).price = ethers.formatEther(listing.price);
+            (item as any).isListed = true;
+          }
+          return listing !== undefined;
+        });
+      }
+      
+      console.log("NFT items:", nftItems.length);
+      console.log("Listed NFTs:", listedNFTs.length);
+      console.log("Display items:", displayItems.length);
+      
+      setFilteredItems(displayItems);
+      setCurrentItems(displayItems.slice(0, itemsPerPage));
+      setTotalPages(Math.ceil(displayItems.length / itemsPerPage));
+    }
+  }, [currentView, nftItems, listedNFTs, account, filters.owner]);
 
   // Update useEffect for current items
   useEffect(() => {
@@ -493,6 +541,70 @@ function AppContent() {
     }));
   };
 
+  const fetchListedNFTs = async () => {
+    if (!window.ethereum) return;
+    
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const tradingContract = new ethers.Contract(
+        TRADING_CONTRACT_ADDRESS,
+        CONTRACT_ABIS.TRADING_CONTRACT,
+        provider
+      );
+      
+      // Get listed NFTs from contract events
+      const filter = tradingContract.filters.CardListed();
+      const events = await tradingContract.queryFilter(filter);
+      console.log("Found listing events:", events.length);
+      
+      // Get NFT contract for tokenURI lookup
+      const nftContract = new ethers.Contract(
+        NFT_CONTRACT_ADDRESS,
+        CONTRACT_ABIS.NFT_CONTRACT,
+        provider
+      );
+      
+      // Process events and check current listing status
+      const activeListings = await Promise.all(
+        events.map(async (event: any) => {
+          const { tokenId, price, seller, isAuction } = event.args;
+          console.log("Processing event for tokenId:", tokenId.toString());
+          
+          try {
+            // Get the IPFS hash for this token
+            const tokenURI = await nftContract.tokenURI(tokenId);
+            const ipfsHash = tokenURI.replace('ipfs://', '');
+            console.log("Token", tokenId.toString(), "has IPFS hash:", ipfsHash);
+            
+            // Check if the listing is still active
+            const listing = await tradingContract.listings(tokenId);
+            console.log("Listing status for tokenId", tokenId.toString(), ":", listing);
+            
+            if (listing.isActive) {
+              return {
+                tokenId: ipfsHash, // Store the IPFS hash as the tokenId for comparison
+                price: price.toString(),
+                seller,
+                isAuction,
+              };
+            }
+          } catch (error) {
+            console.error("Error processing listing for token", tokenId.toString(), ":", error);
+          }
+          return null; // Return null for inactive or errored listings
+        })
+      );
+
+      // Filter out null values (inactive listings)
+      const filteredListings = activeListings.filter((listing): listing is NFTListing => listing !== null);
+      
+      console.log("Active listings found:", filteredListings);
+      setListedNFTs(filteredListings);
+    } catch (error) {
+      console.error("Error fetching listed NFTs:", error);
+    }
+  };
+
   return (
     <div style={{ backgroundColor: '#fff' }}>
       <section id="header">
@@ -507,20 +619,18 @@ function AppContent() {
           <h1>Pokémon NFT Trading Site</h1>
         </div>
 
-        <div>
+      <div>
           <ul id="navbar">
             <SearchBar onSearch={handleSearch} />
-            <li id="lg-bag">
-              <button 
-                className="cart-icon-container"
-                onClick={() => setIsCartOpen(true)}
-              >
-                <i className="far fa-shopping-bag"></i>
-                {cartItemCount > 0 && (
-                  <span className="cart-count">{cartItemCount}</span>
-                )}
-              </button>
-            </li>
+            <button 
+              className="cart-button"
+              onClick={() => setIsCartOpen(true)}
+            >
+              <i className="fas fa-shopping-cart"></i>
+              {cartItemCount > 0 && (
+                <span className="cart-count">{cartItemCount}</span>
+              )}
+            </button>
             <div className="wallet-section">
               {!isConnected ? (
                 <button onClick={connectWallet} disabled={isConnecting} className="wallet-button">
@@ -557,11 +667,25 @@ function AppContent() {
                 </div>
               )}
             </div>
+            <button 
+              className={`profile-btn ${currentView === 'profile' ? 'active' : ''}`}
+              onClick={() => {
+                if (!isConnected) {
+                  setToastMessage('Please connect your wallet first');
+                  setToastType('error');
+                  setShowToast(true);
+                  return;
+                }
+                setCurrentView(currentView === 'profile' ? 'main' : 'profile');
+              }}
+            >
+              <i className="fas fa-user"></i>
+              <span>Profile</span>
+            </button>
             <a href="#" id="close"><i className="far fa-times"></i></a>
           </ul>
         </div>
         <div id="mobile">
-          <a href="cart.html"><i className="far fa-shopping-bag"></i></a>
           <i id="bar" className="fas fa-outdent"></i>
         </div>
 
@@ -572,239 +696,251 @@ function AppContent() {
       </section> */}
 
       {/* <div className="divider-line"></div> */}
-      <div className="main-container">
-        <aside className="sidebar">
-          {/* Status Filter */}
-          <div className="filter-section">
-            <h3>Status</h3>
-            <div className="filter-option">
-              <input
-                type="radio"
-                id="status-all"
-                name="status"
-                checked={filters.status === 'all'}
-                onChange={() => handleFilterChange('status', 'all')}
-              />
-              <label htmlFor="status-all">All</label>
-            </div>
-            <div className="filter-option">
-              <input
-                type="radio"
-                id="status-listed"
-                name="status"
-                checked={filters.status === 'listed'}
-                onChange={() => handleFilterChange('status', 'listed')}
-              />
-              <label htmlFor="status-listed">Listed</label>
-            </div>
-            <div className="filter-option">
-              <input
-                type="radio"
-                id="status-auction"
-                name="status"
-                checked={filters.status === 'auction'}
-                onChange={() => handleFilterChange('status', 'auction')}
-              />
-              <label htmlFor="status-auction">On Auction</label>
-            </div>
-          </div>
+      <Suspense fallback={<div>Loading...</div>}>
+        {currentView === 'main' ? (
+          <div className="main-container">
+            <aside className="sidebar">
+              {/* Status Filter */}
+              <div className="filter-section">
+                <h3>Status</h3>
+                <div className="filter-option">
+                  <input
+                    type="radio"
+                    id="status-all"
+                    name="status"
+                    checked={filters.status === 'all'}
+                    onChange={() => handleFilterChange('status', 'all')}
+                  />
+                  <label htmlFor="status-all">All</label>
+                </div>
+                <div className="filter-option">
+                  <input
+                    type="radio"
+                    id="status-listed"
+                    name="status"
+                    checked={filters.status === 'listed'}
+                    onChange={() => handleFilterChange('status', 'listed')}
+                  />
+                  <label htmlFor="status-listed">Listed</label>
+                </div>
+                <div className="filter-option">
+                  <input
+                    type="radio"
+                    id="status-auction"
+                    name="status"
+                    checked={filters.status === 'auction'}
+                    onChange={() => handleFilterChange('status', 'auction')}
+                  />
+                  <label htmlFor="status-auction">On Auction</label>
+                </div>
+              </div>
 
-          {/* Owner Filter */}
-          <div className="filter-section">
-            <h3>Owner</h3>
-            <div className="filter-option">
-              <input
-                type="radio"
-                id="owner-all"
-                name="owner"
-                checked={filters.owner === 'all'}
-                onChange={() => handleFilterChange('owner', 'all')}
-              />
-              <label htmlFor="owner-all">All</label>
-            </div>
-            <div className="filter-option">
-              <input
-                type="radio"
-                id="owner-me"
-                name="owner"
-                checked={filters.owner === 'me'}
-                onChange={() => handleFilterChange('owner', 'me')}
-              />
-              <label htmlFor="owner-me">My NFTs</label>
-            </div>
-          </div>
+              {/* Owner Filter */}
+              <div className="filter-section">
+                <h3>Owner</h3>
+                <div className="filter-option">
+                  <input
+                    type="radio"
+                    id="owner-all"
+                    name="owner"
+                    checked={filters.owner === 'all'}
+                    onChange={() => handleFilterChange('owner', 'all')}
+                  />
+                  <label htmlFor="owner-all">All</label>
+                </div>
+                <div className="filter-option">
+                  <input
+                    type="radio"
+                    id="owner-me"
+                    name="owner"
+                    checked={filters.owner === 'me'}
+                    onChange={() => handleFilterChange('owner', 'me')}
+                  />
+                  <label htmlFor="owner-me">My NFTs</label>
+                </div>
+              </div>
 
-          {/* Price Range Filter */}
-          <div className="filter-section">
-            <h3>Price</h3>
-            <div className="price-range">
-              <input
-                type="number"
-                placeholder="Min"
-                className="price-input"
-                value={filters.priceRange.min || ''}
-                onChange={(e) => handlePriceRangeChange(
-                  e.target.value ? Number(e.target.value) : null,
-                  filters.priceRange.max
-                )}
-              />
-              <span>to</span>
-              <input
-                type="number"
-                placeholder="Max"
-                className="price-input"
-                value={filters.priceRange.max || ''}
-                onChange={(e) => handlePriceRangeChange(
-                  filters.priceRange.min,
-                  e.target.value ? Number(e.target.value) : null
-                )}
-              />
-            </div>
-          </div>
+              {/* Price Range Filter */}
+              <div className="filter-section">
+                <h3>Price</h3>
+                <div className="price-range">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    className="price-input"
+                    value={filters.priceRange.min || ''}
+                    onChange={(e) => handlePriceRangeChange(
+                      e.target.value ? Number(e.target.value) : null,
+                      filters.priceRange.max
+                    )}
+                  />
+                  <span>to</span>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    className="price-input"
+                    value={filters.priceRange.max || ''}
+                    onChange={(e) => handlePriceRangeChange(
+                      filters.priceRange.min,
+                      e.target.value ? Number(e.target.value) : null
+                    )}
+                  />
+                </div>
+              </div>
 
-          {/* Traits Filter */}
-          <div className="filter-section">
-            <h3>Traits</h3>
-            <div className="filter-option">
-              <div className="type-selector">
-                <button 
-                  className="type-dropdown-button"
-                  onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
-                >
-                  <div className="selected-types">
-                    {filters.types.length === 0 ? (
-                      <span>Select Types</span>
-                    ) : (
-                      <div className="type-tags">
-                        {filters.types.map(type => (
-                          <div key={type} className={`type-tag ${type.toLowerCase()}`}>
+              {/* Traits Filter */}
+              <div className="filter-section">
+                <h3>Traits</h3>
+                <div className="filter-option">
+                  <div className="type-selector">
+                    <button 
+                      className="type-dropdown-button"
+                      onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
+                    >
+                      <div className="selected-types">
+                        {filters.types.length === 0 ? (
+                          <span>Select Types</span>
+                        ) : (
+                          <div className="type-tags">
+                            {filters.types.map(type => (
+                              <div key={type} className={`type-tag ${type.toLowerCase()}`}>
+                                {type}
+                                <button
+                                  className="remove-type"
+                                  onClick={(e) => handleRemoveType(type, e)}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <i className="fas fa-chevron-down"></i>
+                    </button>
+                    {isTypeDropdownOpen && (
+                      <div className="type-dropdown-panel">
+                        {pokemonTypes.map(type => (
+                          <div 
+                            key={type}
+                            className={`type-badge ${type.toLowerCase()} ${
+                              filters.types.includes(type) ? 'selected' : ''
+                            }`}
+                            onClick={() => handleTypeSelection(type)}
+                          >
                             {type}
-                            <button
-                              className="remove-type"
-                              onClick={(e) => handleRemoveType(type, e)}
-                            >
-                              ×
-                            </button>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
-                  <i className="fas fa-chevron-down"></i>
-                </button>
-                {isTypeDropdownOpen && (
-                  <div className="type-dropdown-panel">
-                    {pokemonTypes.map(type => (
-                      <div 
-                        key={type}
-                        className={`type-badge ${type.toLowerCase()} ${
-                          filters.types.includes(type) ? 'selected' : ''
-                        }`}
-                        onClick={() => handleTypeSelection(type)}
-                      >
-                        {type}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                </div>
               </div>
+            </aside>
+
+            <div className="content-area">
+              <section id="product1" className="section-p1">
+                <div className="pro-container">
+                  {currentItems.map((item) => (
+                    <div 
+                      key={item.ipfs_pin_hash} 
+                      className="pro"
+                      onClick={(e) => handleCardClick(e, item)}
+                    >
+                      <PinataImage 
+                        hash={item.ipfs_pin_hash}
+                        alt="NFT Item"
+                      />
+                      <div className="des">
+                        <span>{item.metadata?.keyvalues?.Type || 'Type'}</span>
+                        <div className="name-price">
+                          <h5>{item.metadata?.name || 'Pokemon Card NFT'}</h5>
+                          <h4>{(item as any).price} ETH</h4>
+                        </div>
+                      </div>
+                      <div className="button-group">
+                        <a 
+                          href="#!"
+                          className={`cart-button ${cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) ? 'in-cart' : ''}`}
+                          onClick={(e) => handleCartClick(e, item)}
+                        >
+                          <i className="fal fa-shopping-cart cart"></i>
+                          {cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) && (
+                            <div className="slash"></div>
+                          )}
+                        </a>
+                        <a 
+                          href="#!"
+                          className="buy-now-button"
+                          onClick={(e) => handleBuyNow(e, item)}
+                        >
+                          Buy Now
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              <section id="pagination" className="section-p1">
+                {currentPage > 1 && (
+                  <a 
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handlePageChange(currentPage - 1);
+                    }}
+                    className="nav-btn"
+                  >
+                    <i className="fas fa-long-arrow-alt-left"></i>
+                  </a>
+                )}
+                
+                {Array.from({ length: totalPages }, (_, index) => (
+                  <a 
+                    key={index + 1}
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handlePageChange(index + 1);
+                    }}
+                    className={currentPage === index + 1 ? 'active' : ''}
+                  >
+                    {index + 1}
+                  </a>
+                ))}
+
+                {currentPage < totalPages && (
+                  <a 
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handlePageChange(currentPage + 1);
+                    }}
+                    className="nav-btn"
+                  >
+                    <i className="fas fa-long-arrow-alt-right"></i>
+                  </a>
+                )}
+              </section>
+
+              {isSearching && filteredItems.length === 0 && (
+                <div className="no-results">
+                  <h2>No Pokemon NFT found</h2>
+                </div>
+              )}
             </div>
           </div>
-        </aside>
-
-        <div className="content-area">
-          <section id="product1" className="section-p1">
-            <div className="pro-container">
-              {currentItems.map((item) => (
-                <div 
-                  key={item.ipfs_pin_hash} 
-                  className="pro"
-                  onClick={(e) => handleCardClick(e, item)}
-                >
-                  <PinataImage 
-                    hash={item.ipfs_pin_hash}
-                    alt="NFT Item"
-                  />
-                  <div className="des">
-                    <span>{item.metadata?.keyvalues?.Type || 'Type'}</span>
-                    <div className="name-price">
-                      <h5>{item.metadata?.name || 'Pokemon Card NFT'}</h5>
-                      <h4>0.1 ETH</h4>
-                    </div>
-                  </div>
-                  <div className="button-group">
-                    <a 
-                      href="#!"
-                      className={`cart-button ${cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) ? 'in-cart' : ''}`}
-                      onClick={(e) => handleCartClick(e, item)}
-                    >
-                      <i className="fal fa-shopping-cart cart"></i>
-                      {cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) && (
-                        <div className="slash"></div>
-                      )}
-                    </a>
-                    <a 
-                      href="#!"
-                      className="buy-now-button"
-                      onClick={(e) => handleBuyNow(e, item)}
-                    >
-                      Buy Now
-                    </a>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section id="pagination" className="section-p1">
-            {currentPage > 1 && (
-              <a 
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handlePageChange(currentPage - 1);
-                }}
-                className="nav-btn"
-              >
-                <i className="fas fa-long-arrow-alt-left"></i>
-              </a>
-            )}
-            
-            {Array.from({ length: totalPages }, (_, index) => (
-              <a 
-                key={index + 1}
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handlePageChange(index + 1);
-                }}
-                className={currentPage === index + 1 ? 'active' : ''}
-              >
-                {index + 1}
-              </a>
-            ))}
-
-            {currentPage < totalPages && (
-              <a 
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handlePageChange(currentPage + 1);
-                }}
-                className="nav-btn"
-              >
-                <i className="fas fa-long-arrow-alt-right"></i>
-              </a>
-            )}
-          </section>
-
-          {isSearching && filteredItems.length === 0 && (
-            <div className="no-results">
-              <h2>No Pokemon NFT found</h2>
-            </div>
-          )}
-        </div>
-      </div>
+        ) : (
+          <Profile 
+            nftItems={nftItems.filter(item => {
+              console.log('Filtering item:', item); // Debug log
+              return item.isOwned;
+            })}
+            account={account}
+          />
+        )}
+      </Suspense>
 
       <Suspense fallback={<div>Loading...</div>}>
         {selectedProduct && (
@@ -813,6 +949,7 @@ function AppContent() {
             metadata={selectedProduct.metadata}
             onClose={() => setSelectedProduct(null)}
             onCartOpen={() => setIsCartOpen(true)}
+            price={(selectedProduct as any).price}
           />
         )}
 
@@ -829,7 +966,7 @@ function AppContent() {
         type={toastType}
       />
 
-    </div>
+      </div>
   );
 }
 

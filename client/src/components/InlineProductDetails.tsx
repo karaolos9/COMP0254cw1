@@ -5,14 +5,10 @@ import '../styles/InlineProductDetails.css';
 
 interface InlineProductDetailsProps {
   ipfsHash: string;
-  metadata?: {
-    name?: string;
-    keyvalues?: {
-      Type?: string;
-    };
-  };
+  metadata: any;
   onClose: () => void;
   onCartOpen: () => void;
+  price?: string;
 }
 
 interface Bid {
@@ -21,7 +17,7 @@ interface Bid {
   timestamp: Date;
 }
 
-export default function InlineProductDetails({ ipfsHash, metadata, onClose, onCartOpen }: InlineProductDetailsProps) {
+export default function InlineProductDetails({ ipfsHash, metadata, onClose, onCartOpen, price }: InlineProductDetailsProps) {
   const { addToCart, cartItems, removeFromCart } = useCart();
   const [bidAmount, setBidAmount] = useState<string>('');
   
@@ -45,7 +41,7 @@ export default function InlineProductDetails({ ipfsHash, metadata, onClose, onCa
         id: ipfsHash,
         image: `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
         name: metadata?.name || 'Pokemon Card NFT',
-        price: 0.1,
+        price: price ? parseFloat(price) : 0,
         quantity: 1
       });
     }
@@ -91,7 +87,7 @@ export default function InlineProductDetails({ ipfsHash, metadata, onClose, onCa
             </div>
             <div className="product-price">
               <h3>Price:</h3>
-              <span>0.1 ETH</span>
+              <span>{price || 'Not Listed'} {price ? 'ETH' : ''}</span>
             </div>
             <div className="product-description">
               <h3>Description:</h3>
