@@ -9,7 +9,7 @@ interface PinataImageProps {
 
 export function PinataImage({ hash, alt, className, style }: PinataImageProps) {
   const [imageError, setImageError] = useState(false);
-  const fallbackImage = '/img/poke_ball.png'; // Your fallback image
+  // const fallbackImage = '/img/poke_ball.png'; // Your fallback image
   
   const pinataUrl = `https://gateway.pinata.cloud/ipfs/${hash}`;
   const backupUrl = `https://ipfs.io/ipfs/${hash}`;

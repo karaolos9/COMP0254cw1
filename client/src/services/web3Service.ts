@@ -1,14 +1,14 @@
 import { ethers } from 'ethers';
 
-const NFT_CONTRACT_ADDRESS = import.meta.env.VITE_NFT_CONTRACT_ADDRESS;
+// const NFT_CONTRACT_ADDRESS = import.meta.env.VITE_NFT_CONTRACT_ADDRESS;
 const TRADING_CONTRACT_ADDRESS = import.meta.env.VITE_TRADING_CONTRACT_ADDRESS;
 
 export async function buyNFT(tokenId: string, price: number) {
   try {
     if (!window.ethereum) throw new Error("No wallet found");
     
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const signer = provider.getSigner();
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
     
     // Create contract instance
     const tradingContract = new ethers.Contract(
@@ -18,7 +18,7 @@ export async function buyNFT(tokenId: string, price: number) {
     );
 
     // Convert price from ETH to Wei
-    const priceInWei = ethers.utils.parseEther(price.toString());
+    const priceInWei = ethers.parseEther(price.toString());
     
     // Execute purchase
     const tx = await tradingContract.buyCard(tokenId, {

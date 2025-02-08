@@ -1,43 +1,42 @@
 .search-section {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin: 0 20px;
+  position: relative;
+  margin-right: 20px;
 }
 
 .search-container {
   display: flex;
   align-items: center;
+  background: white;
+  border: 2px solid #1e3a8a;  /* Blue border */
+  border-radius: 20px;        /* Round corners */
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.search-container:focus-within {
+  box-shadow: 0 0 5px rgba(37, 99, 235, 0.3);
+  border-color: #2563eb;
 }
 
 .search-input {
-  padding: 8px 15px;
-  border: 2px solid #1e3a8a;
-  border-radius: 20px;
   width: 250px;
-  font-size: 16px;
+  padding: 8px 15px;
+  border: none;
   outline: none;
-  transition: all 0.3s ease;
-  background: #fff;
-  color: #000;
+  font-size: 16px;
+  color: #1e3a8a;     /* Blue text */
 }
 
 .search-input::placeholder {
   color: #6B7280;
 }
 
-.search-input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 5px rgba(37, 99, 235, 0.3);
-}
-
 .search-button {
   background: none;
   border: none;
-  color: #1e3a8a;
-  cursor: pointer;
   padding: 8px 15px;
-  margin-left: -40px;
+  cursor: pointer;
+  color: #1e3a8a;     /* Blue icon */
   transition: color 0.3s ease;
 }
 
@@ -45,111 +44,64 @@
   color: #2563eb;
 }
 
-/* Type Filter Styles */
 .type-filter {
   position: relative;
+  margin-top: 8px;
 }
 
 .type-filter-controls {
   display: flex;
-  align-items: center;
   gap: 8px;
 }
 
 .type-dropdown-button {
-  padding: 8px 15px;
-  height: 41px;
-  border: 2px solid #1e3a8a;
-  border-radius: 20px;
-  background: #fff;
-  color: #1e3a8a;
-  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  transition: all 0.3s ease;
+  gap: 8px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #E3E6F3;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #606063;
 }
 
-.type-dropdown-button:hover,
-.search-input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 5px rgba(37, 99, 235, 0.3);
+.clear-types-button {
+  padding: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #606063;
 }
 
 .type-dropdown-content {
   position: absolute;
   top: 100%;
   left: 0;
-  background: white;
-  border: 2px solid #1e3a8a;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   width: 200px;
-  max-height: 300px;
-  overflow-y: auto;
-  z-index: 1000;
-  margin-top: 5px;
+  background: white;
+  border: 1px solid #E3E6F3;
+  border-radius: 4px;
+  margin-top: 4px;
   padding: 8px;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .type-option {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
+  padding: 4px;
   cursor: pointer;
-  transition: background-color 0.2s;
-  color: #1e3a8a;
-}
-
-.type-option:hover {
-  background-color: #f0f4ff;
-}
-
-/* Add custom checkbox styling */
-.type-option input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border: 2px solid #1e3a8a;
-  border-radius: 3px;
-  background: white;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.2s ease;
-}
-
-/* Checkbox checked state */
-.type-option input[type="checkbox"]:checked {
-  background: white;
-}
-
-/* Custom checkmark */
-.type-option input[type="checkbox"]:checked::after {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 1px;
-  width: 4px;
-  height: 8px;
-  border: solid #1e3a8a;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-
-/* Hover state */
-.type-option:hover input[type="checkbox"] {
-  border-color: #2563eb;
 }
 
 .type-badge {
   padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  color: white;
-  background-color: #1e3a8a;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  background: #E3E6F3;
 }
 
 /* Pokemon type colors */
@@ -177,23 +129,4 @@
   background-color: #FFF5D6; 
   color: #666; /* Darker text for better contrast */
   border: 1px solid #FFE5A3;
-}
-
-.clear-types-button {
-  background: none;
-  border: none;
-  color: #1e3a8a;
-  cursor: pointer;
-  padding: 8px;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  opacity: 0.7;
-}
-
-.clear-types-button:hover {
-  opacity: 1;
-  color: #ef4444;
 } 

@@ -12,5 +12,17 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/pinata/, '')
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ethereum: ['ethers', '@metamask/sdk-react-ui'],
+          ui: ['./src/components/CartPanel', './src/components/InlineProductDetails']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
   }
 })

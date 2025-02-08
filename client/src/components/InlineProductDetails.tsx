@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { PinataImage } from './PinataImage';
 import '../styles/InlineProductDetails.css';
@@ -21,7 +21,7 @@ interface Bid {
   timestamp: Date;
 }
 
-export function InlineProductDetails({ ipfsHash, metadata, onClose, onCartOpen }: InlineProductDetailsProps) {
+export default function InlineProductDetails({ ipfsHash, metadata, onClose, onCartOpen }: InlineProductDetailsProps) {
   const { addToCart, cartItems, removeFromCart } = useCart();
   const [bidAmount, setBidAmount] = useState<string>('');
   

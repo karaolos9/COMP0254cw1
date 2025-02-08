@@ -19,7 +19,7 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
  * @notice A minimal ERC721 contract for minting Pokemon cards with metadata.
  * @dev All trading logic is moved to a separate Trading contract.
  */
-contract PokemonCardCreation is ERC721URIStorage, ReentrancyGuard, Ownable, Pausable {
+contract pokemonNFT is ERC721URIStorage, ReentrancyGuard, Ownable, Pausable {
 
     /*
      * We keep track of how many cards have been minted.

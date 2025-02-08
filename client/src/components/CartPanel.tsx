@@ -1,4 +1,4 @@
-import React from 'react';
+// import React from 'react';
 import { useCart } from '../context/CartContext';
 import { PinataImage } from './PinataImage';
 import '../styles/CartPanel.css';
@@ -8,7 +8,7 @@ interface CartPanelProps {
   onClose: () => void;
 }
 
-export function CartPanel({ isOpen, onClose }: CartPanelProps) {
+export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
   const { cartItems, removeFromCart, clearCart } = useCart();
   const total = cartItems.reduce((sum, item) => sum + item.price, 0);
   const itemCount = cartItems.length;
