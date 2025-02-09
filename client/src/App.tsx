@@ -1,5 +1,6 @@
 import './App.css'
-import { MetaMaskUIProvider} from "@metamask/sdk-react-ui"
+import { MetaMaskUIProvider } from "@metamask/sdk-react-ui"
+import type { SDKProvider } from "@metamask/sdk";
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { ethers } from "ethers";
 import { fetchPinataItems } from './api/pinataApi';
@@ -8,22 +9,28 @@ import { useCart } from './context/CartContext';
 import { Toast } from './components/Toast';
 import { SearchBar } from './components/SearchBar';
 import { CONTRACT_ABIS } from './config';
+import InlineProductDetails from './components/InlineProductDetails';
+import type { PinataItem as ImportedPinataItem } from './types';
 
 // Lazy load components
 const CartPanel = lazy(() => import('./components/CartPanel'));
-const InlineProductDetails = lazy(() => import('./components/InlineProductDetails'));
 const Profile = lazy(() => import('./components/Profile'));
 
-// Interface for Pinata NFT item structure
-interface PinataItem {
-  ipfs_pin_hash: string;  // Unique identifier/hash for the NFT on IPFS
-  metadata?: {
-    name?: string;        // Name of the Pokemon NFT
-    keyvalues?: {
-      Type?: string;      // Pokemon type (e.g., Fire, Water, etc.)
-    };
-  };
-  isOwned?: boolean;
+// Use imported type with a different name to avoid conflicts
+type PinataItem = ImportedPinataItem & {
+  price?: string;
+  seller?: string;
+  tokenId?: string;
+  isListed?: boolean;
+  isAuction?: boolean;
+};
+
+// Update the Toast component props
+interface ToastProps {
+  message: string;
+  isVisible: boolean;
+  onHide: () => void;
+  type: 'success' | 'error';
 }
 
 // Add these near the top of your AppContent component
@@ -65,9 +72,30 @@ const pokemonTypes = [
 
 interface NFTListing {
   tokenId: string;
+  ipfsHash: string;
   price: string;
   seller: string;
   isAuction: boolean;
+}
+
+// Add network configuration
+const NETWORK_CONFIG = {
+  chainId: '0xaa36a7', // Sepolia
+  chainName: 'Sepolia',
+  nativeCurrency: {
+    name: 'Sepolia ETH',
+    symbol: 'ETH',
+    decimals: 18
+  },
+  rpcUrls: ['https://eth-sepolia.g.alchemy.com/v2/8XyigRnoVSZULHhAxlOfXLfcEcNUZ36P'],
+  blockExplorerUrls: ['https://sepolia.etherscan.io']
+};
+
+// Update Window interface to use SDKProvider
+declare global {
+  interface Window {
+    ethereum?: SDKProvider;
+  }
 }
 
 /**
@@ -139,36 +167,65 @@ function AppContent() {
    * Connects to MetaMask wallet and fetches account balance
    */
   const connectWallet = async () => {
-    if (window.ethereum) {
-      try {
-        setIsConnecting(true);
-        
-        // Force a new connection request by first requesting permissions
-        await window.ethereum.request({
-          method: "wallet_requestPermissions",
-          params: [{ eth_accounts: {} }]
-        });
+    if (!window.ethereum) {
+      setToastMessage('Please install MetaMask');
+      setToastType('error');
+      setShowToast(true);
+      return;
+    }
 
-        // Then request accounts to get the selected account
-        const accounts = (await window.ethereum.request({
-          method: "eth_requestAccounts",
-        })) as Array<string>;
-        
-        if (accounts && accounts.length > 0) {
-          setAccount(accounts[0]);
-          setIsConnected(true);
-          
-          const provider = new ethers.BrowserProvider(window.ethereum);
-          const balance = await provider.getBalance(accounts[0]);
-          setBalance(ethers.formatEther(balance));
+    setIsConnecting(true);
+    try {
+      // Clear any existing connection first
+      await window.ethereum.request({
+        method: 'wallet_requestPermissions',
+        params: [{ eth_accounts: {} }]
+      });
+
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' }) as string[];
+      if (accounts && accounts.length > 0) {
+        const account = accounts[0];
+        setAccount(account);
+        setIsConnected(true);
+
+        // Switch to Sepolia if needed
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: NETWORK_CONFIG.chainId }],
+          });
+        } catch (switchError: any) {
+          // This error code indicates that the chain has not been added to MetaMask
+          if (switchError.code === 4902) {
+            try {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [NETWORK_CONFIG],
+              });
+            } catch (addError) {
+              console.error('Error adding Sepolia network:', addError);
+              throw addError;
+            }
+          } else {
+            throw switchError;
+          }
         }
-      } catch (error) {
-        console.error("Error connecting to wallet:", error);
-      } finally {
-        setIsConnecting(false);
+
+        setToastMessage('Wallet connected successfully');
+        setToastType('success');
+        setShowToast(true);
+
+        // Store connection state
+        localStorage.setItem('walletConnected', 'true');
+        localStorage.setItem('walletAddress', account);
       }
-    } else {
-      alert("MetaMask is not installed. Please install it to use this app");
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+      setToastMessage('Error connecting wallet');
+      setToastType('error');
+      setShowToast(true);
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -177,14 +234,97 @@ function AppContent() {
    * Disconnects from MetaMask and clears wallet state
    */
   const disconnectWallet = async () => {
-    if (window.confirm('Disconnect your wallet?')) {
-      // Only clear app state, don't revoke permissions
+    try {
+      // Clear local storage
+      localStorage.removeItem('walletConnected');
+      localStorage.removeItem('walletAddress');
+
+      // Clear state
       setAccount(null);
-      setBalance(null);
       setIsConnected(false);
-      setShowWalletInfo(false);
+      setBalance(null);
+      setCurrentView('main');
+      
+      setToastMessage('Wallet disconnected');
+      setToastType('success');
+      setShowToast(true);
+
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+      setToastMessage('Error disconnecting wallet');
+      setToastType('error');
+      setShowToast(true);
     }
   };
+
+  // Check for existing connection on mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      if (window.ethereum) {
+        try {
+          const wasConnected = localStorage.getItem('walletConnected') === 'true';
+          const storedAddress = localStorage.getItem('walletAddress');
+
+          if (wasConnected && storedAddress) {
+            const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
+            if (accounts.length > 0 && accounts[0].toLowerCase() === storedAddress.toLowerCase()) {
+              setAccount(accounts[0]);
+              setIsConnected(true);
+            } else {
+              // Clear stale connection data
+              localStorage.removeItem('walletConnected');
+              localStorage.removeItem('walletAddress');
+            }
+          }
+        } catch (error) {
+          console.error('Error checking wallet connection:', error);
+        }
+      }
+    };
+
+    checkConnection();
+  }, []);
+
+  // Update event handlers with proper types
+  useEffect(() => {
+    if (window.ethereum) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        if (accounts.length === 0) {
+          // User disconnected their wallet
+          disconnectWallet();
+        } else if (accounts[0].toLowerCase() !== account?.toLowerCase()) {
+          // Different account selected
+          setAccount(accounts[0]);
+          setIsConnected(true);
+          localStorage.setItem('walletConnected', 'true');
+          localStorage.setItem('walletAddress', accounts[0]);
+        }
+      };
+
+      const handleChainChanged = () => {
+        setToastMessage('Network changed. Refreshing...');
+        setToastType('error');
+        setShowToast(true);
+        setTimeout(() => window.location.reload(), 2000);
+      };
+
+      const handleDisconnect = () => {
+        disconnectWallet();
+      };
+
+      window.ethereum.on('accountsChanged', handleAccountsChanged as (...args: unknown[]) => void);
+      window.ethereum.on('chainChanged', handleChainChanged as (...args: unknown[]) => void);
+      window.ethereum.on('disconnect', handleDisconnect as (...args: unknown[]) => void);
+
+      return () => {
+        if (window.ethereum) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged as (...args: unknown[]) => void);
+          window.ethereum.removeListener('chainChanged', handleChainChanged as (...args: unknown[]) => void);
+          window.ethereum.removeListener('disconnect', handleDisconnect as (...args: unknown[]) => void);
+        }
+      };
+    }
+  }, [account]);
 
   // Get Account Balance
   // const getBalance = async () => {
@@ -195,47 +335,24 @@ function AppContent() {
   //   }
   // };
 
-  // Check for existing connection on component mount
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (window.ethereum) {
-        try {
-          const accounts = await window.ethereum.request({
-            method: "eth_accounts"
-          }) as string[];  // Type assertion here
-          
-          if (accounts && accounts.length > 0) {
-            setAccount(accounts[0]);
-            setIsConnected(true);
-
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const balance = await provider.getBalance(accounts[0]);
-            setBalance(ethers.formatEther(balance));
-          }
-        } catch (error) {
-          console.error("Error checking connection:", error);
-        }
-      }
-    };
-
-    checkConnection();
-    loadPinataItems();
-  }, []);
-
   /* Listeners */
+  const handleAccountsChanged = (accounts: string[]) => {
+    if (accounts.length > 0) {
+      setAccount(accounts[0]);
+      setIsConnected(true);
+    } else {
+      setAccount(null);
+      setIsConnected(false);
+    }
+  };
+
   useEffect(() => {
     if (window.ethereum) {
-      window.ethereum.on('accountsChanged', ((accounts: unknown) => {
-        const addressArray = accounts as string[];
-        if (addressArray && addressArray.length > 0) {
-          setAccount(addressArray[0]);
-          setIsConnected(true);
-        } else {
-          setAccount(null);
-          setIsConnected(false);
-          setBalance(null);
+      window.ethereum.on('accountsChanged', (accounts: unknown) => {
+        if (Array.isArray(accounts)) {
+          handleAccountsChanged(accounts as string[]);
         }
-      }) as (...args: unknown[]) => void);
+      });
     }
 
     return () => {
@@ -251,6 +368,19 @@ function AppContent() {
     fetchListedNFTs();
   }, []);
 
+  // Update type handling in state updates
+  const setNftItemsWithTypes = (items: PinataItem[]) => {
+    setNftItems(items.map(item => ({
+      ...item,
+      price: item.price || undefined,
+      seller: item.seller || undefined,
+      tokenId: item.tokenId || undefined,
+      isListed: item.isListed || false,
+      isAuction: item.isAuction || false
+    })));
+  };
+
+  // Update the checkNFTOwnership function to handle types properly
   const checkNFTOwnership = async (items: PinataItem[]) => {
     if (!window.ethereum || !account) return items;
 
@@ -258,59 +388,43 @@ function AppContent() {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const nftContract = new ethers.Contract(
         NFT_CONTRACT_ADDRESS,
-        [
-          "function ownerOf(uint256 tokenId) view returns (address)",
-          "function tokenURI(uint256 tokenId) view returns (string)",
-          "function cardIdCounter() view returns (uint256)"
-        ],
+        CONTRACT_ABIS.NFT_CONTRACT,
         provider
       );
 
-      // Get total number of minted tokens
       const totalTokens = await nftContract.cardIdCounter();
-      console.log("Total minted tokens:", totalTokens.toString());
-
       const checkedItems = await Promise.all(items.map(async (item) => {
         try {
-          // Check ownership for tokens from 1 to totalTokens
           for (let tokenId = 1; tokenId <= totalTokens; tokenId++) {
             try {
               const uri = await nftContract.tokenURI(tokenId);
               const owner = await nftContract.ownerOf(tokenId);
               
-              // Remove 'ipfs://' prefix for comparison
               const cleanUri = uri.replace('ipfs://', '');
               const cleanHash = item.ipfs_pin_hash;
               
               if (cleanUri === cleanHash) {
-                const isOwned = owner.toLowerCase() === account.toLowerCase();
-                console.log(`Token ${tokenId}:`, {
-                  uri: cleanUri,
-                  hash: cleanHash,
-                  owner,
-                  account,
-                  isOwned
-                });
-                return { ...item, isOwned };
+                return {
+                  ...item,
+                  isOwned: owner.toLowerCase() === account.toLowerCase(),
+                  tokenId: tokenId.toString()
+                };
               }
             } catch (e) {
-              // Skip if token doesn't exist or other error
               continue;
             }
           }
-          
-          // If we didn't find a match, it's not minted yet or we don't own it
-          return { ...item, isOwned: false };
+          return { ...item, isOwned: false, tokenId: undefined };
         } catch (error) {
-          console.error("Error checking individual item:", error);
-          return { ...item, isOwned: false };
+          console.error('Error checking ownership:', error);
+          return item;
         }
       }));
 
-      console.log("Checked items:", checkedItems);
+      setNftItems(checkedItems);
       return checkedItems;
     } catch (error) {
-      console.error("Error checking NFT ownership:", error);
+      console.error('Error in checkNFTOwnership:', error);
       return items;
     }
   };
@@ -354,10 +468,12 @@ function AppContent() {
    * Opens detailed view of selected NFT
    */
   const handleCardClick = (e: React.MouseEvent, item: PinataItem) => {
-    // Don't show details if clicking the cart button
-    if (!(e.target as HTMLElement).closest('.cart-button')) {
-      setSelectedProduct(item);
-    }
+    e.preventDefault();
+    const selectedItem: PinataItem = {
+      ...item,
+      tokenId: item.tokenId?.toString()
+    };
+    setSelectedProduct(selectedItem);
   };
 
   /**
@@ -486,40 +602,55 @@ function AppContent() {
   // Update the filtering logic for the main page
   useEffect(() => {
     if (currentView === 'main') {
-      let displayItems = nftItems;
+      console.log("Starting filtering with:", {
+        totalItems: nftItems.length,
+        listedNFTs: listedNFTs.length,
+        filters,
+        account
+      });
 
-      if (filters.owner === 'me') {
-        // When "My NFTs" is selected, show only NFTs listed by the user
-        displayItems = nftItems.filter(item => {
-          const listing = listedNFTs.find(nft => nft.tokenId === item.ipfs_pin_hash);
-          if (listing && listing.seller.toLowerCase() === account?.toLowerCase()) {
-            (item as any).price = ethers.formatEther(listing.price);
-            (item as any).isListed = true;
-            return true;
-          }
-          return false;
-        });
-      } else {
-        // When "All" is selected, show only listed NFTs
-        displayItems = nftItems.filter(item => {
-          const listing = listedNFTs.find(nft => nft.tokenId === item.ipfs_pin_hash);
-          if (listing) {
-            (item as any).price = ethers.formatEther(listing.price);
-            (item as any).isListed = true;
-          }
-          return listing !== undefined;
-        });
+      // Map of listed NFTs by IPFS hash for quick lookup
+      const listedNFTsMap = new Map(
+        listedNFTs.map(nft => [nft.ipfsHash, nft])
+      );
+
+      // Start with all NFT items
+      let displayItems = nftItems.map(item => ({
+        ...item,
+        isListed: listedNFTsMap.has(item.ipfs_pin_hash),
+        price: listedNFTsMap.get(item.ipfs_pin_hash)?.price,
+        seller: listedNFTsMap.get(item.ipfs_pin_hash)?.seller,
+        tokenId: listedNFTsMap.get(item.ipfs_pin_hash)?.tokenId,
+        isAuction: listedNFTsMap.get(item.ipfs_pin_hash)?.isAuction || false
+      }));
+
+      // Filter based on listing status
+      if (filters.status === 'listed') {
+        displayItems = displayItems.filter(item => item.isListed && !item.isAuction);
+      } else if (filters.status === 'auction') {
+        displayItems = displayItems.filter(item => item.isListed && item.isAuction);
+      } else if (filters.status === 'all') {
+        displayItems = displayItems.filter(item => item.isListed); // Show all listed items
       }
-      
-      console.log("NFT items:", nftItems.length);
-      console.log("Listed NFTs:", listedNFTs.length);
-      console.log("Display items:", displayItems.length);
-      
+
+      // Apply owner filter if selected
+      if (filters.owner === 'me' && account) {
+        displayItems = displayItems.filter(item => 
+          item.seller?.toLowerCase() === account.toLowerCase()
+        );
+      }
+
+      console.log("Filtered items:", {
+        displayItems,
+        filterStatus: filters.status,
+        filterOwner: filters.owner
+      });
+
       setFilteredItems(displayItems);
       setCurrentItems(displayItems.slice(0, itemsPerPage));
       setTotalPages(Math.ceil(displayItems.length / itemsPerPage));
     }
-  }, [currentView, nftItems, listedNFTs, account, filters.owner]);
+  }, [currentView, nftItems, listedNFTs, account, filters.status, filters.owner, itemsPerPage]);
 
   // Update useEffect for current items
   useEffect(() => {
@@ -563,7 +694,6 @@ function AppContent() {
       // Get listed NFTs from contract events
       const filter = tradingContract.filters.CardListed();
       const events = await tradingContract.queryFilter(filter);
-      console.log("Found listing events:", events.length);
       
       // Get NFT contract for tokenURI lookup
       const nftContract = new ethers.Contract(
@@ -576,22 +706,18 @@ function AppContent() {
       const activeListings = await Promise.all(
         events.map(async (event: any) => {
           const { tokenId, price, seller, isAuction } = event.args;
-          console.log("Processing event for tokenId:", tokenId.toString());
           
           try {
-            // Get the IPFS hash for this token
             const tokenURI = await nftContract.tokenURI(tokenId);
             const ipfsHash = tokenURI.replace('ipfs://', '');
-            console.log("Token", tokenId.toString(), "has IPFS hash:", ipfsHash);
             
-            // Check if the listing is still active
             const listing = await tradingContract.listings(tokenId);
-            console.log("Listing status for tokenId", tokenId.toString(), ":", listing);
             
             if (listing.isActive) {
               return {
-                tokenId: ipfsHash, // Store the IPFS hash as the tokenId for comparison
-                price: price.toString(),
+                tokenId: tokenId.toString(),
+                ipfsHash,
+                price: ethers.formatEther(price),
                 seller,
                 isAuction,
               };
@@ -599,17 +725,44 @@ function AppContent() {
           } catch (error) {
             console.error("Error processing listing for token", tokenId.toString(), ":", error);
           }
-          return null; // Return null for inactive or errored listings
+          return null;
         })
       );
 
-      // Filter out null values (inactive listings)
       const filteredListings = activeListings.filter((listing): listing is NFTListing => listing !== null);
-      
-      console.log("Active listings found:", filteredListings);
       setListedNFTs(filteredListings);
     } catch (error) {
       console.error("Error fetching listed NFTs:", error);
+    }
+  };
+
+  const handleCancelListing = async (e: React.MouseEvent, item: PinataItem) => {
+    e.preventDefault();
+    if (!window.ethereum || !item.tokenId) return;
+
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      const tradingContract = new ethers.Contract(
+        TRADING_CONTRACT_ADDRESS,
+        CONTRACT_ABIS.TRADING_CONTRACT,
+        signer
+      );
+
+      const tx = await tradingContract.cancelListing(item.tokenId);
+      await tx.wait();
+
+      await fetchListedNFTs();
+      
+      setToastMessage('Listing cancelled successfully');
+      setToastType('success');
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error cancelling listing:', error);
+      setToastMessage('Error cancelling listing');
+      setToastType('error');
+      setShowToast(true);
     }
   };
 
@@ -849,44 +1002,70 @@ function AppContent() {
             <div className="content-area">
               <section id="product1" className="section-p1">
                 <div className="pro-container">
-                  {currentItems.map((item) => (
-                    <div 
-                      key={item.ipfs_pin_hash} 
-                      className="pro"
-                      onClick={(e) => handleCardClick(e, item)}
-                    >
-                      <PinataImage 
-                        hash={item.ipfs_pin_hash}
-                        alt="NFT Item"
-                      />
-                      <div className="des">
-                        <span>{item.metadata?.keyvalues?.Type || 'Type'}</span>
-                        <div className="name-price">
+                  {filteredItems.map((item) => {
+                    const listing = listedNFTs.find(nft => nft.ipfsHash === item.ipfs_pin_hash);
+                    const isOwner = listing && listing.seller.toLowerCase() === account?.toLowerCase();
+                    
+                    return (
+                      <div 
+                        key={item.ipfs_pin_hash} 
+                        className="pro"
+                        onClick={(e) => handleCardClick(e, {
+                          ...item,
+                          price: listing?.price,
+                          seller: listing?.seller,
+                          tokenId: listing ? parseInt(listing.tokenId) : undefined
+                        } as PinataItem)}
+                      >
+                        <PinataImage 
+                          hash={item.ipfs_pin_hash}
+                          alt="NFT Item"
+                        />
+                        <div className="des">
+                          <span>{item.metadata?.keyvalues?.Type || 'Type'}</span>
                           <h5>{item.metadata?.name || 'Pokemon Card NFT'}</h5>
-                          <h4>{(item as any).price} ETH</h4>
+                          {listing && <h4>{listing.price} ETH</h4>}
+                        </div>
+                        <div className="button-group">
+                          {isOwner ? (
+                            <button 
+                              className="cancel-listing-button"
+                              onClick={(e) => handleCancelListing(e, {
+                                ...item,
+                                tokenId: listing!.tokenId.toString()
+                              } as PinataItem)}
+                            >
+                              <i className="fas fa-times"></i>
+                              Cancel Listing
+                            </button>
+                          ) : listing && (
+                            <>
+                              <button 
+                                className="cart-button-card"
+                                onClick={(e) => handleCartClick(e, {
+                                  ...item,
+                                  price: listing.price
+                                } as PinataItem)}
+                              >
+                                <i className="fas fa-shopping-cart"></i>
+                                Cart
+                              </button>
+                              <button 
+                                className="buy-now-button"
+                                onClick={(e) => handleBuyNow(e, {
+                                  ...item,
+                                  price: listing.price
+                                } as PinataItem)}
+                              >
+                                <i className="fas fa-bolt"></i>
+                                Buy Now
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
-                      <div className="button-group">
-                        <a 
-                          href="#!"
-                          className={`cart-button ${cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) ? 'in-cart' : ''}`}
-                          onClick={(e) => handleCartClick(e, item)}
-                        >
-                          <i className="fal fa-shopping-cart cart"></i>
-                          {cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) && (
-                            <div className="slash"></div>
-                          )}
-                        </a>
-                        <a 
-                          href="#!"
-                          className="buy-now-button"
-                          onClick={(e) => handleBuyNow(e, item)}
-                        >
-                          Buy Now
-                        </a>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
 
@@ -942,12 +1121,14 @@ function AppContent() {
         ) : (
           <Profile 
             nftItems={nftItems.filter(item => {
-              // Include NFTs that are either owned by the user or listed by them
-              const listing = listedNFTs.find(nft => nft.tokenId === item.ipfs_pin_hash);
+              const listing = listedNFTs.find(nft => nft.tokenId === item.tokenId);
               const isListed = listing && listing.seller.toLowerCase() === account?.toLowerCase();
               if (isListed) {
-                (item as any).price = ethers.formatEther(listing.price);
-                (item as any).isListed = true;
+                return {
+                  ...item,
+                  price: listing.price,
+                  isListed: true
+                };
               }
               return item.isOwned || isListed;
             })}
@@ -956,22 +1137,25 @@ function AppContent() {
         )}
       </Suspense>
 
-      <Suspense fallback={<div>Loading...</div>}>
-        {selectedProduct && (
+      {/* Product Details Modal */}
+      {selectedProduct && (
+        <Suspense fallback={<div>Loading...</div>}>
           <InlineProductDetails
             ipfsHash={selectedProduct.ipfs_pin_hash}
             metadata={selectedProduct.metadata}
             onClose={() => setSelectedProduct(null)}
             onCartOpen={() => setIsCartOpen(true)}
-            price={(selectedProduct as any).price}
+            price={selectedProduct.price || undefined}
+            seller={selectedProduct.seller || undefined}
+            tokenId={selectedProduct.tokenId ? Number(selectedProduct.tokenId) : undefined}
           />
-        )}
+        </Suspense>
+      )}
 
-        <CartPanel 
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-        />
-      </Suspense>
+      <CartPanel 
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+      />
 
       <Toast 
         message={toastMessage}

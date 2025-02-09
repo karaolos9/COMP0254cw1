@@ -11,4 +11,9 @@ export interface PinataItem {
     };
   };
   isOwned?: boolean;
+  price?: string;
+  seller?: string;
+  tokenId?: string;
+  isAuction?: boolean;
+  isListed?: boolean;
 } 

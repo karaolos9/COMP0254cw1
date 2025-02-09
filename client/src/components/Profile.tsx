@@ -31,30 +31,39 @@ const Profile: React.FC<ProfileProps> = ({ nftItems, account }) => {
           CONTRACT_ABIS.TRADING_CONTRACT,
           provider
         );
-        const nftContract = new ethers.Contract(
-          CONTRACT_ADDRESSES.NFT_CONTRACT,
-          CONTRACT_ABIS.NFT_CONTRACT,
-          provider
-        );
 
-        const totalTokens = await nftContract.cardIdCounter();
+        // Get listed NFTs from contract events
+        const filter = tradingContract.filters.CardListed();
+        const events = await tradingContract.queryFilter(filter);
+        
+        // Process events and check current listing status
         const nftStatuses = new Map<string, { isListed: boolean; isAuction: boolean }>();
-
-        // Check each token's status
-        for (let i = 1; i <= totalTokens; i++) {
+        
+        for (const event of events) {
+          const { tokenId, seller, isAuction } = event.args;
           try {
-            const uri = await nftContract.tokenURI(i);
-            const cleanUri = uri.replace('ipfs://', '');
-            const listing = await tradingContract.listings(i);
+            // Check if the listing is still active
+            const listing = await tradingContract.listings(tokenId);
             
             if (listing.isActive && listing.seller.toLowerCase() === account.toLowerCase()) {
-              nftStatuses.set(cleanUri, {
+              // Get the NFT contract
+              const nftContract = new ethers.Contract(
+                CONTRACT_ADDRESSES.NFT_CONTRACT,
+                CONTRACT_ABIS.NFT_CONTRACT,
+                provider
+              );
+              
+              // Get the IPFS hash for this token
+              const tokenURI = await nftContract.tokenURI(tokenId);
+              const ipfsHash = tokenURI.replace('ipfs://', '');
+              
+              nftStatuses.set(ipfsHash, {
                 isListed: true,
-                isAuction: listing.isAuction
+                isAuction: isAuction
               });
             }
           } catch (error) {
-            console.error(`Error checking token ${i}:`, error);
+            console.error(`Error checking token ${tokenId}:`, error);
           }
         }
 
