@@ -98,6 +98,10 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
                 {metadata?.keyvalues?.Type || 'Type'}
               </span>
             </div>
+            <div className="product-price">
+              <h3>Price:</h3>
+              <span>{isListed ? '0.001 ETH' : 'Not Listed'}</span>
+            </div>
             <div className="metadata-section">
               <h3>Details</h3>
               <div className="metadata-grid">
@@ -136,10 +140,12 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
                 <i className="fas fa-tag"></i>
                 {isListed ? 'Listed' : 'List for Sale'}
               </button>
-              <button className="auction-button">
-                <i className="fas fa-gavel"></i>
-                Start Auction
-              </button>
+              {isListed && (
+                <button className="auction-button">
+                  <i className="fas fa-gavel"></i>
+                  Start Auction
+                </button>
+              )}
             </div>
           </div>
         </div>
