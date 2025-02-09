@@ -21,7 +21,7 @@ const Profile: React.FC<ProfileProps> = ({ nftItems, account }) => {
   const [displayedNFTs, setDisplayedNFTs] = useState<NFTWithPrice[]>([]);
 
   useEffect(() => {
-    const checkOwnershipAndPrices = async () => {
+    const checkListedNFTs = async () => {
       if (!window.ethereum || !account || nftItems.length === 0) {
         setDisplayedNFTs([]);
         return;
@@ -29,39 +29,36 @@ const Profile: React.FC<ProfileProps> = ({ nftItems, account }) => {
 
       try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const nftContract = new ethers.Contract(
-          CONTRACT_ADDRESSES.NFT_CONTRACT,
-          CONTRACT_ABIS.NFT_CONTRACT,
-          provider
-        );
         const tradingContract = new ethers.Contract(
           CONTRACT_ADDRESSES.TRADING_CONTRACT,
           CONTRACT_ABIS.TRADING_CONTRACT,
           provider
         );
+        const nftContract = new ethers.Contract(
+          CONTRACT_ADDRESSES.NFT_CONTRACT,
+          CONTRACT_ABIS.NFT_CONTRACT,
+          provider
+        );
 
         const totalTokens = await nftContract.cardIdCounter();
-        const userNFTs = new Map<string, { price?: string, isListed: boolean }>();
+        const userListings = new Map<string, { price: string, isListed: boolean }>();
 
         // Check each token
         for (let i = 1; i <= totalTokens; i++) {
           try {
-            const uri = await nftContract.tokenURI(i);
-            const cleanUri = uri.replace('ipfs://', '');
+            // Get the listing information
+            const listing = await tradingContract.listings(i);
             
-            // Check if user is the owner
-            const owner = await nftContract.ownerOf(i);
-            
-            if (owner.toLowerCase() === account.toLowerCase()) {
-              // Check if the NFT is listed and get its price
-              const listing = await tradingContract.listings(i);
-              const price = listing.isActive ? ethers.formatEther(listing.price) : undefined;
+            // Check if the NFT is listed by the current user
+            if (listing.isActive && listing.seller.toLowerCase() === account.toLowerCase()) {
+              const uri = await nftContract.tokenURI(i);
+              const cleanUri = uri.replace('ipfs://', '');
               
-              userNFTs.set(cleanUri, {
-                price,
-                isListed: listing.isActive
+              userListings.set(cleanUri, {
+                price: ethers.formatEther(listing.price),
+                isListed: true
               });
-              console.log(`Found owned NFT: ${cleanUri}, Price: ${price}, Listed: ${listing.isActive}`);
+              console.log(`Found listed NFT: ${cleanUri}, Price: ${ethers.formatEther(listing.price)}`);
             }
           } catch (error) {
             console.error(`Error checking token ${i}:`, error);
@@ -70,21 +67,21 @@ const Profile: React.FC<ProfileProps> = ({ nftItems, account }) => {
 
         // Filter and enhance nftItems with price information
         const filteredNFTs = nftItems
-          .filter(item => userNFTs.has(item.ipfs_pin_hash))
+          .filter(item => userListings.has(item.ipfs_pin_hash))
           .map(item => ({
             ...item,
-            ...userNFTs.get(item.ipfs_pin_hash)
+            ...userListings.get(item.ipfs_pin_hash)
           }));
 
-        console.log('Total NFTs found:', filteredNFTs.length);
+        console.log('Total listed NFTs found:', filteredNFTs.length);
         console.log('Filtered NFTs:', filteredNFTs);
         setDisplayedNFTs(filteredNFTs);
       } catch (error) {
-        console.error('Error checking ownership and prices:', error);
+        console.error('Error checking listings:', error);
       }
     };
 
-    checkOwnershipAndPrices();
+    checkListedNFTs();
   }, [nftItems, account]);
 
   return (
