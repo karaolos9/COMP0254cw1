@@ -59,6 +59,23 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
           // Get current listing to verify status and price
           const listing = await tradingContract.listings(item.tokenId);
           
+          // Initialize NFT contract first
+          const nftContract = new ethers.Contract(
+            CONTRACT_ADDRESSES.NFT_CONTRACT,
+            CONTRACT_ABIS.NFT_CONTRACT,
+            provider
+          );
+          
+          // Log all relevant addresses
+          const contractAddress = CONTRACT_ADDRESSES.TRADING_CONTRACT;
+          const buyerAddress = await signer.getAddress();
+          console.log('Address verification:', {
+            contractAddress,
+            sellerAddress: listing.seller,
+            buyerAddress,
+            nftOwner: await nftContract.ownerOf(item.tokenId)
+          });
+
           // Check listing validity based on contract requirements
           if (!listing.isActive) {
             throw new Error(`NFT ${item.name} is not actively listed`);
@@ -69,12 +86,6 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
           }
 
           // Verify the contract owns the NFT
-          const nftContract = new ethers.Contract(
-            CONTRACT_ADDRESSES.NFT_CONTRACT,
-            CONTRACT_ABIS.NFT_CONTRACT,
-            provider
-          );
-          
           const nftOwner = await nftContract.ownerOf(item.tokenId);
           if (nftOwner.toLowerCase() !== CONTRACT_ADDRESSES.TRADING_CONTRACT.toLowerCase()) {
             throw new Error(`NFT ${item.name} is not owned by the trading contract`);
@@ -88,14 +99,55 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
             throw new Error(`Price mismatch for NFT ${item.name}. Listed: ${ethers.formatEther(priceInWei)} ETH, Cart: ${item.price} ETH`);
           }
 
+          // Log seller and payment details
+          console.log('Payment verification:', {
+            tokenId: item.tokenId,
+            seller: listing.seller,
+            price: ethers.formatEther(priceInWei),
+            priceWei: priceInWei.toString(),
+            isActive: listing.isActive,
+            isAuction: listing.isAuction
+          });
+
+          // Check seller's balance before purchase
+          const sellerBalanceBefore = await provider.getBalance(listing.seller);
+          const contractBalanceBefore = await provider.getBalance(contractAddress);
+          console.log('Balances before:', {
+            seller: ethers.formatEther(sellerBalanceBefore),
+            contract: ethers.formatEther(contractBalanceBefore)
+          });
+
           // Attempt to buy the NFT with exact price
           console.log(`Purchasing NFT ${item.name} (ID: ${item.tokenId}) for ${ethers.formatEther(priceInWei)} ETH`);
           const tx = await tradingContract.buyCard(item.tokenId, {
-            value: priceInWei
+            value: priceInWei,
+            gasLimit: 300000 // Set explicit gas limit
           });
 
           console.log(`Transaction sent: ${tx.hash}`);
-          await tx.wait();
+          const receipt = await tx.wait();
+          
+          // Check seller's balance after purchase
+          const sellerBalanceAfter = await provider.getBalance(listing.seller);
+          console.log('Seller balance after:', ethers.formatEther(sellerBalanceAfter), 'ETH');
+          console.log('Balance change:', ethers.formatEther(sellerBalanceAfter - sellerBalanceBefore), 'ETH');
+
+          console.log('Transaction receipt:', {
+            hash: receipt.hash,
+            status: receipt.status,
+            blockNumber: receipt.blockNumber,
+            gasUsed: receipt.gasUsed.toString(),
+            events: receipt.logs.map(log => ({
+              address: log.address,
+              topics: log.topics,
+              data: log.data
+            }))
+          });
+          
+          // Verify the transfer occurred
+          const nftOwnerAfter = await nftContract.ownerOf(item.tokenId);
+          console.log('New NFT owner:', nftOwnerAfter);
+          
           console.log(`Transaction confirmed for NFT: ${item.name}`);
 
         } catch (itemError: any) {

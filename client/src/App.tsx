@@ -1120,7 +1120,7 @@ function AppContent() {
                 </div>
               )}
             </div>
-          </div>
+      </div>
         ) : (
           <Profile 
             nftItems={nftItems.filter(item => {
