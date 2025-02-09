@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { PinataImage } from './PinataImage';
 import { PinataItem } from '../types';
 import ListingModal from './ListingModal';
+import AuctionModal from './AuctionModal';
 import { Toast } from './Toast';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESSES, CONTRACT_ABIS } from '../config';
@@ -29,10 +30,12 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
   account
 }) => {
   const [showListingModal, setShowListingModal] = useState(false);
+  const [showAuctionModal, setShowAuctionModal] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [showToast, setShowToast] = useState(false);
   const [isListed, setIsListed] = useState(false);
+  const [isAuction, setIsAuction] = useState(false);
   const [tokenId, setTokenId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -68,6 +71,7 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
             
             const listing = await tradingContract.listings(i);
             setIsListed(listing.isActive);
+            setIsAuction(listing.isAuction);
             break;
           }
         }
@@ -141,9 +145,13 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
                 {isListed ? 'Listed' : 'List for Sale'}
               </button>
               {isListed && (
-                <button className="auction-button">
+                <button 
+                  className="auction-button"
+                  onClick={() => setShowAuctionModal(true)}
+                  disabled={isAuction}
+                >
                   <i className="fas fa-gavel"></i>
-                  Start Auction
+                  {isAuction ? 'In Auction' : 'Start Auction'}
                 </button>
               )}
             </div>
@@ -155,6 +163,19 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
             onClose={() => setShowListingModal(false)}
             onSuccess={() => {
               setShowListingModal(false);
+              onClose();
+            }}
+            setToastMessage={setToastMessage}
+            setToastType={setToastType}
+            setShowToast={setShowToast}
+          />
+        )}
+        {showAuctionModal && tokenId && (
+          <AuctionModal
+            tokenId={tokenId}
+            onClose={() => setShowAuctionModal(false)}
+            onSuccess={() => {
+              setShowAuctionModal(false);
               onClose();
             }}
             setToastMessage={setToastMessage}

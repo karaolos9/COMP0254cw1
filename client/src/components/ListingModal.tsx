@@ -22,11 +22,11 @@ interface ListingModalProps {
 const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSuccess, setToastMessage, setToastType, setShowToast }) => {
   const [price, setPrice] = useState<string>('');
   const [isListing, setIsListing] = useState(false);
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (value === '' || /^\d*\.?\d*$/.test(value)) { // Allow empty or decimal numbers
+    if (value === '' || /^\d*\.?\d*$/.test(value)) {
       setPrice(value);
     }
   };
@@ -165,8 +165,8 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
         const receipt = await listTx.wait();
         console.log('Transaction receipt:', receipt);
         
-        // Show success popup instead of immediately refreshing
-        setShowSuccessPopup(true);
+        // After successful listing
+        setShowSuccessMessage(true);
         
       } catch (error: any) {
         console.error('Listing transaction failed:', {
@@ -200,7 +200,37 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
   return (
     <div className="listing-modal-overlay" onClick={onClose}>
       <div className="listing-modal-content" onClick={e => e.stopPropagation()}>
-        {showSuccessPopup ? (
+        <h3>List Card for Sale</h3>
+        <div className="price-input-container">
+          <input
+            type="text"
+            value={price}
+            onChange={handlePriceChange}
+            placeholder="Enter price in ETH"
+            className="price-input"
+          />
+          <span className="eth-label">ETH</span>
+        </div>
+        <div className="listing-modal-buttons">
+          <button 
+            className="cancel-button"
+            onClick={onClose}
+            disabled={isListing}
+          >
+            Cancel
+          </button>
+          <button 
+            className="list-button"
+            onClick={handleList}
+            disabled={!price || isListing}
+          >
+            {isListing ? 'Listing...' : 'List'}
+          </button>
+        </div>
+      </div>
+      {isListing && <div className="listing-loading-overlay" />}
+      {showSuccessMessage && (
+        <div className="success-popup-overlay">
           <div className="success-popup">
             <h3>Listing Successful!</h3>
             <p>Your NFT has been listed successfully.</p>
@@ -208,38 +238,8 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
               OK
             </button>
           </div>
-        ) : (
-          <>
-            <h3>List Card for Sale</h3>
-            <div className="price-input-container">
-              <input
-                type="text"
-                value={price}
-                onChange={handlePriceChange}
-                placeholder="Enter price in ETH"
-                className="price-input"
-              />
-              <span className="eth-label">ETH</span>
-            </div>
-            <div className="listing-modal-buttons">
-              <button 
-                className="cancel-button"
-                onClick={onClose}
-                disabled={isListing}
-              >
-                Cancel
-              </button>
-              <button 
-                className="list-button"
-                onClick={handleList}
-                disabled={!price || isListing}
-              >
-                {isListing ? 'Listing...' : 'List'}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

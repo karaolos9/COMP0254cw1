@@ -1041,19 +1041,26 @@ function AppContent() {
                         <div className="button-group">
                           <div 
                             className="tooltip" 
-                            data-disabled={item.seller?.toLowerCase() === account?.toLowerCase()}
+                            data-disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
+                            data-tooltip-message={
+                              item.seller?.toLowerCase() === account?.toLowerCase() 
+                                ? "You are the owner of this NFT"
+                                : item.isAuction 
+                                  ? "This NFT is currently in an auction"
+                                  : ""
+                            }
                           >
                             <button 
                               className="cart-button"
                               onClick={(e) => handleCartClick(e, item)}
-                              disabled={item.seller?.toLowerCase() === account?.toLowerCase()}
+                              disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
                             >
                               <i className="fas fa-shopping-cart"></i>
                             </button>
                             <button 
                               className="buy-now-button"
                               onClick={(e) => handleBuyNow(e, item)}
-                              disabled={item.seller?.toLowerCase() === account?.toLowerCase()}
+                              disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
                             >
                               Buy Now
                             </button>

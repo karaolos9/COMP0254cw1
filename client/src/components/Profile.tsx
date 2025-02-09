@@ -26,65 +26,227 @@ const Profile: React.FC<ProfileProps> = ({ nftItems, account }) => {
 
       try {
         const provider = new ethers.BrowserProvider(window.ethereum);
+        const accountLower = account.toLowerCase();
+        
+        // Step 1: Get contract instances
         const tradingContract = new ethers.Contract(
           CONTRACT_ADDRESSES.TRADING_CONTRACT,
           CONTRACT_ABIS.TRADING_CONTRACT,
           provider
         );
+        const nftContract = new ethers.Contract(
+          CONTRACT_ADDRESSES.NFT_CONTRACT,
+          CONTRACT_ABIS.NFT_CONTRACT,
+          provider
+        );
 
-        // Get listed NFTs from contract events
-        const filter = tradingContract.filters.CardListed();
-        const events = await tradingContract.queryFilter(filter);
+        // Step 2: Get total tokens and build IPFS mapping
+        const totalTokens = await nftContract.cardIdCounter();
+        console.log('Total tokens:', totalTokens.toString());
         
-        // Process events and check current listing status
-        const nftStatuses = new Map<string, { isListed: boolean; isAuction: boolean }>();
-        
-        for (const event of events) {
-          const { tokenId, seller, isAuction } = event.args;
+        // Create maps for token tracking
+        const tokenToIpfsMap = new Map<string, string>();
+        const ipfsToTokenId = new Map<string, string>();
+        const nftStatuses = new Map<string, { 
+          tokenId: string;
+          isListed: boolean; 
+          isAuction: boolean; 
+          seller: string;
+          isMyListing: boolean;
+          isOwned: boolean;
+        }>();
+
+        // Create a map to store additional NFT items we discover
+        const additionalNFTs = new Map<string, PinataItem>();
+
+        // First, build a set of all IPFS hashes we have in nftItems
+        const availableIpfsHashes = new Set(nftItems.map(item => item.ipfs_pin_hash));
+        console.log('Available IPFS hashes:', Array.from(availableIpfsHashes));
+
+        // Step 3: Check all tokens for listings and ownership
+        for (let i = 1; i <= totalTokens; i++) {
           try {
-            // Check if the listing is still active
-            const listing = await tradingContract.listings(tokenId);
+            const tokenId = i.toString();
             
-            if (listing.isActive && listing.seller.toLowerCase() === account.toLowerCase()) {
-              // Get the NFT contract
-              const nftContract = new ethers.Contract(
-                CONTRACT_ADDRESSES.NFT_CONTRACT,
-                CONTRACT_ABIS.NFT_CONTRACT,
-                provider
-              );
-              
-              // Get the IPFS hash for this token
-              const tokenURI = await nftContract.tokenURI(tokenId);
-              const ipfsHash = tokenURI.replace('ipfs://', '');
-              
+            // First check if this token is listed in the trading contract
+            const listing = await tradingContract.listings(tokenId);
+            const sellerLower = listing.seller.toLowerCase();
+            const isMyListing = sellerLower === accountLower;
+            const isListed = listing.isActive;
+
+            // Get the IPFS hash for this token
+            let ipfsHash = '';
+            try {
+              const tokenURI = await nftContract.tokenURI(i);
+              ipfsHash = tokenURI.replace('ipfs://', '');
+            } catch (error) {
+              console.log(`Token ${i} URI not available`);
+              continue;
+            }
+
+            // Process if:
+            // 1. The token is actively listed and I'm the seller, OR
+            // 2. The token's IPFS hash is in our available hashes
+            const shouldProcess = (isListed && isMyListing) || availableIpfsHashes.has(ipfsHash);
+
+            if (shouldProcess) {
+              // Get current owner
+              const owner = await nftContract.ownerOf(i);
+              const ownerLower = owner.toLowerCase();
+              const isInTradingContract = ownerLower === CONTRACT_ADDRESSES.TRADING_CONTRACT.toLowerCase();
+              const isOwned = ownerLower === accountLower;
+
+              console.log(`Token ${tokenId} detailed status:`, {
+                tokenId,
+                ipfsHash,
+                owner: ownerLower,
+                accountLower,
+                isInTradingContract,
+                isOwned,
+                listing: {
+                  isActive: listing.isActive,
+                  seller: sellerLower,
+                  isAuction: listing.isAuction,
+                  price: listing.price?.toString(),
+                  isMyListing
+                }
+              });
+
+              // If this is my listing but not in nftItems, create a new item for it
+              if (isListed && isMyListing && !availableIpfsHashes.has(ipfsHash)) {
+                // Create a basic PinataItem for this NFT
+                additionalNFTs.set(ipfsHash, {
+                  ipfs_pin_hash: ipfsHash,
+                  metadata: {
+                    name: `Token #${tokenId}`,
+                    keyvalues: {
+                      Type: 'Unknown'
+                    }
+                  }
+                });
+                console.log(`Added additional NFT for token ${tokenId}:`, ipfsHash);
+              }
+
+              tokenToIpfsMap.set(tokenId, ipfsHash);
+              ipfsToTokenId.set(ipfsHash, tokenId);
+
+              // Store the status
               nftStatuses.set(ipfsHash, {
-                isListed: true,
-                isAuction: isAuction
+                tokenId,
+                isListed,
+                isAuction: listing.isAuction,
+                seller: sellerLower,
+                isMyListing,
+                isOwned: isOwned || (isInTradingContract && isMyListing)
               });
             }
           } catch (error) {
-            console.error(`Error checking token ${tokenId}:`, error);
+            console.error(`Error processing token ${i}:`, error);
           }
         }
 
-        // Filter NFTs based on status
-        const filteredNFTs = nftItems.filter(item => {
+        // Log the mappings for debugging
+        console.log('Token to IPFS mapping:', Object.fromEntries(tokenToIpfsMap));
+        console.log('IPFS to Token mapping:', Object.fromEntries(ipfsToTokenId));
+        console.log('NFT Statuses:', Object.fromEntries(nftStatuses));
+        console.log('Additional NFTs:', Object.fromEntries(additionalNFTs));
+
+        // Step 4: Filter NFTs based on status
+        // Combine original nftItems with additional NFTs we discovered
+        const allNFTs = [...nftItems, ...Array.from(additionalNFTs.values())];
+        const filteredNFTs = allNFTs.filter(item => {
           const status = nftStatuses.get(item.ipfs_pin_hash);
-          const isOwned = item.isOwned;
+          const tokenId = ipfsToTokenId.get(item.ipfs_pin_hash);
           
+          // Add status to item for UI and future reference
+          if (status) {
+            item.isListed = status.isListed;
+            item.isAuction = status.isAuction;
+            item.seller = status.seller;
+            item.isOwned = status.isOwned;
+            item.tokenId = status.tokenId;
+          }
+
+          console.log('Processing NFT for display:', {
+            name: item.metadata?.name,
+            ipfsHash: item.ipfs_pin_hash,
+            tokenId,
+            currentFilter: statusFilter,
+            status: status ? {
+              isListed: status.isListed,
+              isAuction: status.isAuction,
+              isMyListing: status.isMyListing,
+              seller: status.seller,
+              isOwned: status.isOwned
+            } : 'No status found'
+          });
+
+          if (!status) {
+            console.log(`No status found for NFT ${item.metadata?.name}`);
+            return false;
+          }
+
+          // Determine if NFT should be included based on filter
           switch (statusFilter) {
             case 'all':
-              return isOwned || status?.isListed;
+              // Show if I own it directly OR if it's my active listing in the trading contract
+              const shouldInclude = status.isOwned || (status.isListed && status.isMyListing);
+              const reason = status.isOwned ? 'owned by me' : 
+                           (status.isListed && status.isMyListing ? 'active listing by me' : 
+                           'not owned or listed by me');
+              console.log(`${shouldInclude ? 'Including' : 'Excluding'} ${item.metadata?.name}:`, {
+                reason,
+                tokenId,
+                isOwned: status.isOwned,
+                isListed: status.isListed,
+                isMyListing: status.isMyListing,
+                seller: status.seller
+              });
+              return shouldInclude;
+
             case 'listed':
-              return status?.isListed && !status?.isAuction;
+              // Show only my active direct sale listings
+              const isMyDirectSale = status.isListed && status.isMyListing && !status.isAuction;
+              console.log(`${isMyDirectSale ? 'Including' : 'Excluding'} ${item.metadata?.name} from listed:`, {
+                isMyListing: status.isMyListing,
+                isListed: status.isListed,
+                isAuction: status.isAuction,
+                seller: status.seller
+              });
+              return isMyDirectSale;
+
             case 'auction':
-              return status?.isAuction;
+              // Show only my active auction listings
+              const isMyAuction = status.isListed && status.isMyListing && status.isAuction;
+              console.log(`${isMyAuction ? 'Including' : 'Excluding'} ${item.metadata?.name} from auction:`, {
+                isMyListing: status.isMyListing,
+                isListed: status.isListed,
+                isAuction: status.isAuction,
+                seller: status.seller
+              });
+              return isMyAuction;
+
             case 'not-listed':
-              return isOwned && !status?.isListed;
+              // Show only NFTs I own directly (in my wallet)
+              const isOwnedDirectly = status.isOwned && !status.isListed;
+              console.log(`${isOwnedDirectly ? 'Including' : 'Excluding'} ${item.metadata?.name} from not-listed:`, {
+                isOwned: status.isOwned,
+                isListed: status.isListed,
+                seller: status.seller
+              });
+              return isOwnedDirectly;
+
             default:
               return false;
           }
         });
+
+        console.log('Final filtered NFTs:', filteredNFTs.map(nft => ({
+          name: nft.metadata?.name,
+          ipfsHash: nft.ipfs_pin_hash,
+          tokenId: nft.tokenId,
+          status: nftStatuses.get(nft.ipfs_pin_hash)
+        })));
 
         setDisplayedNFTs(filteredNFTs);
       } catch (error) {

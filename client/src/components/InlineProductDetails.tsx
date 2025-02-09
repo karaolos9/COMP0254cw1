@@ -23,12 +23,13 @@ interface InlineProductDetailsProps {
   price?: string;
   seller?: string;
   tokenId?: number;
+  account?: string | null;
 }
 
 interface Bid {
-  address: string;
-  amount: number;
-  timestamp: Date;
+  bidder: string;
+  amount: bigint;
+  timestamp: number;
 }
 
 export default function InlineProductDetails({ 
@@ -38,30 +39,25 @@ export default function InlineProductDetails({
   onCartOpen, 
   price,
   seller,
-  tokenId
+  tokenId,
+  account
 }: InlineProductDetailsProps) {
   const { addToCart, cartItems, removeFromCart } = useCart();
   const [bidAmount, setBidAmount] = useState<string>('');
   const [isListed, setIsListed] = useState(false);
+  const [isAuction, setIsAuction] = useState(false);
+  const [auctionEndTime, setAuctionEndTime] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<string>('');
+  const [currentBids, setCurrentBids] = useState<Bid[]>([]);
   const [isOwner, setIsOwner] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [showToast, setShowToast] = useState(false);
+  const [showBidSuccessPopup, setShowBidSuccessPopup] = useState(false);
+  const [isPlacingBid, setIsPlacingBid] = useState(false);
+  const [isFinalizingAuction, setIsFinalizingAuction] = useState(false);
+  const [showFinalizeSuccessPopup, setShowFinalizeSuccessPopup] = useState(false);
   
-  // Mock bids data - replace with real data later
-  const [bids] = useState<Bid[]>([
-    {
-      address: '0x1234...5678',
-      amount: 0.15,
-      timestamp: new Date('2024-03-10T10:00:00')
-    },
-    {
-      address: '0x8765...4321',
-      amount: 0.12,
-      timestamp: new Date('2024-03-09T15:30:00')
-    }
-  ]);
-
   useEffect(() => {
     const checkListingStatus = async () => {
       if (!window.ethereum || !tokenId) return;
@@ -77,16 +73,64 @@ export default function InlineProductDetails({
           provider
         );
         
+        // Get listing and auction details
         const listing = await tradingContract.listings(tokenId);
         setIsListed(listing.isActive);
-        setIsOwner(seller?.toLowerCase() === signerAddress.toLowerCase());
+        setIsAuction(listing.isAuction);
+        setIsOwner(listing.seller?.toLowerCase() === signerAddress.toLowerCase());
+
+        if (listing.isAuction) {
+          const auction = await tradingContract.auctions(tokenId);
+          setAuctionEndTime(Number(auction.endTime));
+
+          // Get auction events to show bid history
+          const filter = tradingContract.filters.AuctionBid(tokenId);
+          const events = await tradingContract.queryFilter(filter);
+          
+          const bids = events
+            .filter((event): event is ethers.Log & { args: any[] } => 'args' in event)
+            .map(async event => {
+              const block = await event.getBlock();
+              return {
+                bidder: event.args[1], // bidder address
+                amount: event.args[2], // bid amount
+                timestamp: block.timestamp
+              };
+            });
+
+          const resolvedBids = await Promise.all(bids);
+          setCurrentBids(resolvedBids.sort((a, b) => b.timestamp - a.timestamp)); // Sort by most recent
+        }
       } catch (error) {
         console.error('Error checking listing status:', error);
       }
     };
 
     checkListingStatus();
-  }, [tokenId, seller]);
+
+    // Update countdown timer every second
+    const timer = setInterval(() => {
+      if (auctionEndTime) {
+        const now = Math.floor(Date.now() / 1000);
+        const remaining = auctionEndTime - now;
+        
+        if (remaining <= 0) {
+          setTimeLeft('Auction ended');
+        } else {
+          const days = Math.floor(remaining / (24 * 60 * 60));
+          const hours = Math.floor((remaining % (24 * 60 * 60)) / (60 * 60));
+          const minutes = Math.floor((remaining % (60 * 60)) / 60);
+          const seconds = remaining % 60;
+          
+          setTimeLeft(
+            `${days}d ${hours}h ${minutes}m ${seconds}s`
+          );
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [tokenId, auctionEndTime]);
 
   const handleCancelListing = async () => {
     if (!window.ethereum || !tokenId) return;
@@ -154,9 +198,84 @@ export default function InlineProductDetails({
     onCartOpen();
   };
 
-  const handlePlaceBid = () => {
-    // Implement bid placement logic here
-    console.log('Placing bid:', bidAmount);
+  const handlePlaceBid = async () => {
+    if (!window.ethereum || !bidAmount || !tokenId) return;
+
+    try {
+      setIsPlacingBid(true);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      const tradingContract = new ethers.Contract(
+        CONTRACT_ADDRESSES.TRADING_CONTRACT,
+        CONTRACT_ABIS.TRADING_CONTRACT,
+        signer
+      );
+
+      // Convert bid amount to Wei
+      const bidAmountWei = ethers.parseEther(bidAmount);
+
+      // Attempt to place bid
+      const tx = await tradingContract.placeBid(tokenId, {
+        value: bidAmountWei
+      });
+
+      console.log('Bid transaction sent:', tx.hash);
+      await tx.wait();
+      console.log('Bid placed successfully');
+
+      // Show success popup
+      setShowBidSuccessPopup(true);
+
+      // Clear bid amount
+      setBidAmount('');
+
+      // Refresh bid history
+      const filter = tradingContract.filters.AuctionBid(tokenId);
+      const events = await tradingContract.queryFilter(filter);
+      
+      const newBids = events
+        .filter((event): event is ethers.Log & { args: any[] } => 'args' in event)
+        .map(async event => {
+          const block = await event.getBlock();
+          return {
+            bidder: event.args[1],
+            amount: event.args[2],
+            timestamp: block.timestamp
+          };
+        });
+
+      const resolvedNewBids = await Promise.all(newBids);
+      setCurrentBids(resolvedNewBids.sort((a, b) => b.timestamp - a.timestamp));
+
+    } catch (error: any) {
+      console.error('Error placing bid:', error);
+      let errorMessage = 'Error placing bid: ';
+      
+      if (error.message.includes('InactiveListing')) {
+        errorMessage += 'This NFT is not actively listed';
+      } else if (error.message.includes('UseAuctionFunctions')) {
+        errorMessage += 'This NFT is not in an auction';
+      } else if (error.message.includes('AuctionHasEnded')) {
+        errorMessage += 'The auction has ended';
+      } else if (error.message.includes('LowBid')) {
+        errorMessage += 'Bid amount is too low';
+      } else if (error.message.includes('insufficient funds')) {
+        errorMessage += 'Insufficient funds for bid';
+      } else {
+        errorMessage += error.message || 'Unknown error';
+      }
+      
+      setToastMessage(errorMessage);
+      setToastType('error');
+      setShowToast(true);
+    } finally {
+      setIsPlacingBid(false);
+    }
+  };
+
+  const handleBidSuccessOk = () => {
+    setShowBidSuccessPopup(false);
   };
 
   const handleClose = () => {
@@ -169,6 +288,61 @@ export default function InlineProductDetails({
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const formatBidTime = (timestamp: number) => {
+    return new Date(timestamp * 1000).toLocaleString();
+  };
+
+  const handleFinalizeAuction = async () => {
+    if (!window.ethereum || !tokenId) return;
+
+    try {
+      setIsFinalizingAuction(true);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      const tradingContract = new ethers.Contract(
+        CONTRACT_ADDRESSES.TRADING_CONTRACT,
+        CONTRACT_ABIS.TRADING_CONTRACT,
+        signer
+      );
+
+      const tx = await tradingContract.finalizeAuction(tokenId);
+      console.log('Finalize auction transaction sent:', tx.hash);
+      await tx.wait();
+      console.log('Auction finalized successfully');
+
+      setShowFinalizeSuccessPopup(true);
+
+    } catch (error: any) {
+      console.error('Error finalizing auction:', error);
+      let errorMessage = 'Error finalizing auction: ';
+      
+      if (error.message.includes('InactiveListing')) {
+        errorMessage += 'This NFT is not actively listed';
+      } else if (error.message.includes('NotAnAuction')) {
+        errorMessage += 'This NFT is not in an auction';
+      } else if (error.message.includes('AuctionNotEnded')) {
+        errorMessage += 'The auction has not ended yet';
+      } else if (error.message.includes('Unauthorized')) {
+        errorMessage += 'You are not authorized to finalize this auction';
+      } else {
+        errorMessage += error.message || 'Unknown error';
+      }
+      
+      setToastMessage(errorMessage);
+      setToastType('error');
+      setShowToast(true);
+    } finally {
+      setIsFinalizingAuction(false);
+    }
+  };
+
+  const handleFinalizeSuccessOk = () => {
+    setShowFinalizeSuccessPopup(false);
+    onClose();
+    window.location.reload(); // Refresh the page to update the NFT status
   };
 
   return (
@@ -241,6 +415,7 @@ export default function InlineProductDetails({
                             const auctionSection = document.querySelector('.auction-section');
                             auctionSection?.scrollIntoView({ behavior: 'smooth' });
                           }}
+                          disabled={!isAuction}
                         >
                           <i className="fas fa-gavel"></i>
                           View Auction
@@ -251,12 +426,14 @@ export default function InlineProductDetails({
                         <button 
                           className="add-to-cart-button"
                           onClick={handleAddToCart}
+                          disabled={isAuction}
                         >
                           {cartItems.some(item => item.id === ipfsHash) ? 'Remove from Cart' : 'Add to Cart'}
                         </button>
                         <button 
                           className="buy-now-button"
                           onClick={handleBuyNow}
+                          disabled={isAuction}
                         >
                           Buy Now
                         </button>
@@ -266,6 +443,7 @@ export default function InlineProductDetails({
                             const auctionSection = document.querySelector('.auction-section');
                             auctionSection?.scrollIntoView({ behavior: 'smooth' });
                           }}
+                          disabled={!isAuction}
                         >
                           <i className="fas fa-gavel"></i>
                           View Auction
@@ -278,46 +456,99 @@ export default function InlineProductDetails({
             </div>
 
             {/* Auction Section */}
-            <div className="auction-section">
-              <div className="auction-content">
-                <h3>Auction Details</h3>
-                <div className="current-bids">
-                  <h4>Current Bids</h4>
-                  {bids.length > 0 ? (
-                    <div className="bids-list">
-                      {bids.map((bid, index) => (
-                        <div key={index} className="bid-item">
-                          <span className="bid-address">{bid.address}</span>
-                          <span className="bid-amount">{bid.amount} ETH</span>
-                          <span className="bid-time">
-                            {bid.timestamp.toLocaleDateString()}
-                          </span>
+            {isAuction && (
+              <div className={`auction-section ${isAuction ? 'active' : ''}`}>
+                <div className="auction-header">
+                  <h3>Auction Details</h3>
+                  <span className="auction-countdown">{timeLeft}</span>
+                </div>
+                <div className="auction-content">
+                  <div className="current-bids">
+                    <h4>Bid History</h4>
+                    {currentBids.length > 0 ? (
+                      <div className="bids-list">
+                        {currentBids.map((bid, index) => (
+                          <div key={index} className="bid-item">
+                            <span className="bid-address">{formatAddress(bid.bidder)}</span>
+                            <span className="bid-amount">{ethers.formatEther(bid.amount)} ETH</span>
+                            <span className="bid-time">{formatBidTime(bid.timestamp)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="no-bids">No bids yet</p>
+                    )}
+                  </div>
+                  {!isOwner && auctionEndTime > Math.floor(Date.now() / 1000) && !showFinalizeSuccessPopup && (
+                    <div className="place-bid">
+                      {showBidSuccessPopup ? (
+                        <div className="success-popup-overlay">
+                          <div className="success-popup">
+                            <h3>Bid Placed Successfully!</h3>
+                            <p>Your bid has been placed on this NFT.</p>
+                            <button className="ok-button" onClick={handleBidSuccessOk}>
+                              OK
+                            </button>
+                          </div>
                         </div>
-                      ))}
+                      ) : isPlacingBid ? (
+                        <div className="loading-container">
+                          <div className="loading-spinner"></div>
+                          <p>Placing your bid...</p>
+                        </div>
+                      ) : (
+                        <>
+                          <input
+                            type="number"
+                            value={bidAmount}
+                            onChange={(e) => setBidAmount(e.target.value)}
+                            placeholder="Enter bid amount in ETH"
+                            min="0.1"
+                            step="0.01"
+                            disabled={isPlacingBid}
+                          />
+                          <button 
+                            className="place-bid-button"
+                            onClick={handlePlaceBid}
+                            disabled={!bidAmount || Number(bidAmount) <= 0 || isPlacingBid}
+                          >
+                            Place Bid
+                          </button>
+                        </>
+                      )}
                     </div>
-                  ) : (
-                    <p className="no-bids">No bids yet</p>
+                  )}
+                  {auctionEndTime <= Math.floor(Date.now() / 1000) && (isOwner || account?.toLowerCase() === seller?.toLowerCase()) && (
+                    <div className="finalize-auction">
+                      {showFinalizeSuccessPopup ? (
+                        <div className="success-popup-overlay">
+                          <div className="success-popup">
+                            <h3>Auction Finalized Successfully!</h3>
+                            <p>The auction has been finalized and assets have been transferred.</p>
+                            <button className="ok-button" onClick={handleFinalizeSuccessOk}>
+                              OK
+                            </button>
+                          </div>
+                        </div>
+                      ) : isFinalizingAuction ? (
+                        <div className="loading-container">
+                          <div className="loading-spinner"></div>
+                          <p>Finalizing auction...</p>
+                        </div>
+                      ) : (
+                        <button 
+                          className="finalize-auction-button"
+                          onClick={handleFinalizeAuction}
+                          disabled={isFinalizingAuction}
+                        >
+                          Finalize Auction
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
-                <div className="place-bid">
-                  <input
-                    type="number"
-                    value={bidAmount}
-                    onChange={(e) => setBidAmount(e.target.value)}
-                    placeholder="Enter bid amount in ETH"
-                    min="0.1"
-                    step="0.01"
-                  />
-                  <button 
-                    className="place-bid-button"
-                    onClick={handlePlaceBid}
-                    disabled={!bidAmount || Number(bidAmount) <= 0}
-                  >
-                    Place Bid
-                  </button>
-                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

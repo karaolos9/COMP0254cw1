@@ -570,7 +570,7 @@ button.white {
 }
 
 .tooltip[data-disabled="true"]::after {
-  content: "You are the owner of this NFT";
+  content: attr(data-tooltip-message);
   position: absolute;
   bottom: 120%;
   left: 50%;
@@ -1654,5 +1654,33 @@ button i {
 .product-price span {
   color: #059669;
   font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.duration-input-container {
+  position: relative;
+  margin-bottom: 25px;
+}
+
+.duration-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #E3E6F3;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  padding-right: 50px;
+}
+
+.duration-input:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+.duration-label {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6b7280;
   font-weight: 600;
 }
