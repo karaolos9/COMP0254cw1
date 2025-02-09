@@ -489,16 +489,15 @@ function AppContent() {
       let displayItems = nftItems;
 
       if (filters.owner === 'me') {
-        // When "My NFTs" is selected, show NFTs that are either owned or listed by the user
+        // When "My NFTs" is selected, show only NFTs listed by the user
         displayItems = nftItems.filter(item => {
           const listing = listedNFTs.find(nft => nft.tokenId === item.ipfs_pin_hash);
-          if (listing) {
+          if (listing && listing.seller.toLowerCase() === account?.toLowerCase()) {
             (item as any).price = ethers.formatEther(listing.price);
             (item as any).isListed = true;
-            // Include if either owned or listed by the user
-            return item.isOwned || (listing.seller.toLowerCase() === account?.toLowerCase());
+            return true;
           }
-          return item.isOwned;
+          return false;
         });
       } else {
         // When "All" is selected, show only listed NFTs
@@ -943,8 +942,14 @@ function AppContent() {
         ) : (
           <Profile 
             nftItems={nftItems.filter(item => {
+              // Include NFTs that are either owned by the user or listed by them
               const listing = listedNFTs.find(nft => nft.tokenId === item.ipfs_pin_hash);
-              return listing && listing.seller.toLowerCase() === account?.toLowerCase();
+              const isListed = listing && listing.seller.toLowerCase() === account?.toLowerCase();
+              if (isListed) {
+                (item as any).price = ethers.formatEther(listing.price);
+                (item as any).isListed = true;
+              }
+              return item.isOwned || isListed;
             })}
             account={account}
           />

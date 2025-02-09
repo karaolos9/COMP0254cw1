@@ -10,18 +10,15 @@ interface ProfileProps {
   account: string | null;
 }
 
-interface NFTWithPrice extends PinataItem {
-  price?: string;
-  isListed?: boolean;
-}
+type StatusFilter = 'all' | 'listed' | 'auction' | 'not-listed';
 
 const Profile: React.FC<ProfileProps> = ({ nftItems, account }) => {
-  console.log('Profile props:', { nftItems, account }); // Debug log
-  const [selectedCard, setSelectedCard] = useState<NFTWithPrice | null>(null);
-  const [displayedNFTs, setDisplayedNFTs] = useState<NFTWithPrice[]>([]);
+  const [selectedCard, setSelectedCard] = useState<PinataItem | null>(null);
+  const [displayedNFTs, setDisplayedNFTs] = useState<PinataItem[]>([]);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   useEffect(() => {
-    const checkListedNFTs = async () => {
+    const filterNFTs = async () => {
       if (!window.ethereum || !account || nftItems.length === 0) {
         setDisplayedNFTs([]);
         return;
@@ -41,48 +38,53 @@ const Profile: React.FC<ProfileProps> = ({ nftItems, account }) => {
         );
 
         const totalTokens = await nftContract.cardIdCounter();
-        const userListings = new Map<string, { price: string, isListed: boolean }>();
+        const nftStatuses = new Map<string, { isListed: boolean; isAuction: boolean }>();
 
-        // Check each token
+        // Check each token's status
         for (let i = 1; i <= totalTokens; i++) {
           try {
-            // Get the listing information
+            const uri = await nftContract.tokenURI(i);
+            const cleanUri = uri.replace('ipfs://', '');
             const listing = await tradingContract.listings(i);
             
-            // Check if the NFT is listed by the current user
             if (listing.isActive && listing.seller.toLowerCase() === account.toLowerCase()) {
-              const uri = await nftContract.tokenURI(i);
-              const cleanUri = uri.replace('ipfs://', '');
-              
-              userListings.set(cleanUri, {
-                price: ethers.formatEther(listing.price),
-                isListed: true
+              nftStatuses.set(cleanUri, {
+                isListed: true,
+                isAuction: listing.isAuction
               });
-              console.log(`Found listed NFT: ${cleanUri}, Price: ${ethers.formatEther(listing.price)}`);
             }
           } catch (error) {
             console.error(`Error checking token ${i}:`, error);
           }
         }
 
-        // Filter and enhance nftItems with price information
-        const filteredNFTs = nftItems
-          .filter(item => userListings.has(item.ipfs_pin_hash))
-          .map(item => ({
-            ...item,
-            ...userListings.get(item.ipfs_pin_hash)
-          }));
+        // Filter NFTs based on status
+        const filteredNFTs = nftItems.filter(item => {
+          const status = nftStatuses.get(item.ipfs_pin_hash);
+          const isOwned = item.isOwned;
+          
+          switch (statusFilter) {
+            case 'all':
+              return isOwned || status?.isListed;
+            case 'listed':
+              return status?.isListed && !status?.isAuction;
+            case 'auction':
+              return status?.isAuction;
+            case 'not-listed':
+              return isOwned && !status?.isListed;
+            default:
+              return false;
+          }
+        });
 
-        console.log('Total listed NFTs found:', filteredNFTs.length);
-        console.log('Filtered NFTs:', filteredNFTs);
         setDisplayedNFTs(filteredNFTs);
       } catch (error) {
-        console.error('Error checking listings:', error);
+        console.error('Error filtering NFTs:', error);
       }
     };
 
-    checkListedNFTs();
-  }, [nftItems, account]);
+    filterNFTs();
+  }, [nftItems, account, statusFilter]);
 
   return (
     <div className="main-container">
@@ -93,13 +95,57 @@ const Profile: React.FC<ProfileProps> = ({ nftItems, account }) => {
             {account ? `${account.slice(0, 6)}...${account.slice(-4)}` : 'Not connected'}
           </p>
         </div>
+
+        <div className="filter-section">
+          <h3>Status</h3>
+          <div className="filter-option">
+            <input
+              type="radio"
+              id="status-all"
+              name="status"
+              checked={statusFilter === 'all'}
+              onChange={() => setStatusFilter('all')}
+            />
+            <label htmlFor="status-all">All</label>
+          </div>
+          <div className="filter-option">
+            <input
+              type="radio"
+              id="status-listed"
+              name="status"
+              checked={statusFilter === 'listed'}
+              onChange={() => setStatusFilter('listed')}
+            />
+            <label htmlFor="status-listed">Listed</label>
+          </div>
+          <div className="filter-option">
+            <input
+              type="radio"
+              id="status-auction"
+              name="status"
+              checked={statusFilter === 'auction'}
+              onChange={() => setStatusFilter('auction')}
+            />
+            <label htmlFor="status-auction">On Auction</label>
+          </div>
+          <div className="filter-option">
+            <input
+              type="radio"
+              id="status-not-listed"
+              name="status"
+              checked={statusFilter === 'not-listed'}
+              onChange={() => setStatusFilter('not-listed')}
+            />
+            <label htmlFor="status-not-listed">Not Listed</label>
+          </div>
+        </div>
       </aside>
 
       <div className="content-area">
         <section id="product1" className="section-p1">
           <div className="pro-container">
             {displayedNFTs.length === 0 ? (
-              <div>No NFTs owned yet</div>
+              <div>No NFTs found</div>
             ) : (
               displayedNFTs.map((item) => (
                 <div 
@@ -115,9 +161,6 @@ const Profile: React.FC<ProfileProps> = ({ nftItems, account }) => {
                     <span>{item.metadata?.keyvalues?.Type || 'Type'}</span>
                     <div className="name-price">
                       <h5>{item.metadata?.name || 'Pokemon Card NFT'}</h5>
-                      {item.isListed && (
-                        <p className="price">{item.price} ETH</p>
-                      )}
                     </div>
                   </div>
                 </div>
