@@ -490,12 +490,19 @@ function AppContent() {
       setToastMessage('Removed from cart');
       setToastType('error');
     } else {
+      if (!item.tokenId) {
+        setToastMessage('Error: Token ID not found');
+        setToastType('error');
+        setShowToast(true);
+        return;
+      }
       addToCart({
         id: item.ipfs_pin_hash,
         image: `https://gateway.pinata.cloud/ipfs/${item.ipfs_pin_hash}`,
         name: item.metadata?.name || 'Pokemon Card NFT',
-        price: (item as any).price ? parseFloat((item as any).price) : 0,
-        quantity: 1
+        price: item.price ? parseFloat(item.price) : 0,
+        quantity: 1,
+        tokenId: parseInt(item.tokenId)
       });
       setToastMessage('Added to cart');
       setToastType('success');
@@ -509,16 +516,22 @@ function AppContent() {
     
     // Add to cart if not already there
     if (!cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash)) {
+      if (!item.tokenId) {
+        setToastMessage('Error: Token ID not found');
+        setToastType('error');
+        setShowToast(true);
+        return;
+      }
       addToCart({
         id: item.ipfs_pin_hash,
         image: `https://gateway.pinata.cloud/ipfs/${item.ipfs_pin_hash}`,
         name: item.metadata?.name || 'Pokemon Card NFT',
-        price: (item as any).price ? parseFloat((item as any).price) : 0,
-        quantity: 1
+        price: item.price ? parseFloat(item.price) : 0,
+        quantity: 1,
+        tokenId: parseInt(item.tokenId)
       });
       setToastMessage('Added to cart');
       setToastType('success');
-      setShowToast(true);
     }
     
     // Open cart panel
@@ -1002,70 +1015,53 @@ function AppContent() {
             <div className="content-area">
               <section id="product1" className="section-p1">
                 <div className="pro-container">
-                  {filteredItems.map((item) => {
-                    const listing = listedNFTs.find(nft => nft.ipfsHash === item.ipfs_pin_hash);
-                    const isOwner = listing && listing.seller.toLowerCase() === account?.toLowerCase();
-                    
-                    return (
+                  {currentItems.length === 0 ? (
+                    <div className="no-items-message">No NFTs found</div>
+                  ) : (
+                    currentItems.map((item) => (
                       <div 
                         key={item.ipfs_pin_hash} 
                         className="pro"
-                        onClick={(e) => handleCardClick(e, {
-                          ...item,
-                          price: listing?.price,
-                          seller: listing?.seller,
-                          tokenId: listing ? parseInt(listing.tokenId) : undefined
-                        } as PinataItem)}
+                        onClick={(e) => handleCardClick(e, item)}
                       >
                         <PinataImage 
                           hash={item.ipfs_pin_hash}
-                          alt="NFT Item"
+                          alt={item.metadata?.name || 'NFT Item'}
                         />
                         <div className="des">
                           <span>{item.metadata?.keyvalues?.Type || 'Type'}</span>
                           <h5>{item.metadata?.name || 'Pokemon Card NFT'}</h5>
-                          {listing && <h4>{listing.price} ETH</h4>}
-                        </div>
-                        <div className="button-group">
-                          {isOwner ? (
-                            <button 
-                              className="cancel-listing-button"
-                              onClick={(e) => handleCancelListing(e, {
-                                ...item,
-                                tokenId: listing!.tokenId.toString()
-                              } as PinataItem)}
-                            >
-                              <i className="fas fa-times"></i>
-                              Cancel Listing
-                            </button>
-                          ) : listing && (
-                            <>
-                              <button 
-                                className="cart-button-card"
-                                onClick={(e) => handleCartClick(e, {
-                                  ...item,
-                                  price: listing.price
-                                } as PinataItem)}
-                              >
-                                <i className="fas fa-shopping-cart"></i>
-                                Cart
-                              </button>
-                              <button 
-                                className="buy-now-button"
-                                onClick={(e) => handleBuyNow(e, {
-                                  ...item,
-                                  price: listing.price
-                                } as PinataItem)}
-                              >
-                                <i className="fas fa-bolt"></i>
-                                Buy Now
-                              </button>
-                            </>
+                          {item.price && (
+                            <div className="price-tag">
+                              <span>{item.price} ETH</span>
+                              {item.isAuction && <span className="auction-badge">Auction</span>}
+                            </div>
                           )}
                         </div>
+                        <div className="button-group">
+                          <div 
+                            className="tooltip" 
+                            data-disabled={item.seller?.toLowerCase() === account?.toLowerCase()}
+                          >
+                            <button 
+                              className="cart-button"
+                              onClick={(e) => handleCartClick(e, item)}
+                              disabled={item.seller?.toLowerCase() === account?.toLowerCase()}
+                            >
+                              <i className="fas fa-shopping-cart"></i>
+                            </button>
+                            <button 
+                              className="buy-now-button"
+                              onClick={(e) => handleBuyNow(e, item)}
+                              disabled={item.seller?.toLowerCase() === account?.toLowerCase()}
+                            >
+                              Buy Now
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    );
-                  })}
+                    ))
+                  )}
                 </div>
               </section>
 

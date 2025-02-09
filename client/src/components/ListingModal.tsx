@@ -22,9 +22,7 @@ interface ListingModalProps {
 const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSuccess, setToastMessage, setToastType, setShowToast }) => {
   const [price, setPrice] = useState<string>('');
   const [isListing, setIsListing] = useState(false);
-  const [toastMessage, setToastMessageState] = useState<string>('');
-  const [toastType, setToastTypeState] = useState<'success' | 'error'>('success');
-  const [showToast, setShowToastState] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -167,13 +165,9 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
         const receipt = await listTx.wait();
         console.log('Transaction receipt:', receipt);
         
-        // Wait a bit for the blockchain to update
-        setTimeout(() => {
-          window.location.reload(); // This will refresh the page and all listings
-        }, 2000);
+        // Show success popup instead of immediately refreshing
+        setShowSuccessPopup(true);
         
-        onSuccess();
-        onClose();
       } catch (error: any) {
         console.error('Listing transaction failed:', {
           error,
@@ -189,44 +183,62 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
       }
     } catch (error) {
       console.error("Error listing card:", error);
-      setToastMessageState('Error listing card: ' + (error as Error).message);
-      setToastTypeState('error');
-      setShowToastState(true);
+      setToastMessage('Error listing card: ' + (error as Error).message);
+      setToastType('error');
+      setShowToast(true);
     } finally {
       setIsListing(false);
     }
   };
 
+  const handleSuccessOk = () => {
+    onSuccess();
+    onClose();
+    window.location.href = '/'; // Navigate to main page
+  };
+
   return (
     <div className="listing-modal-overlay" onClick={onClose}>
       <div className="listing-modal-content" onClick={e => e.stopPropagation()}>
-        <h3>List Card for Sale</h3>
-        <div className="price-input-container">
-          <input
-            type="text"
-            value={price}
-            onChange={handlePriceChange}
-            placeholder="Enter price in ETH"
-            className="price-input"
-          />
-          <span className="eth-label">ETH</span>
-        </div>
-        <div className="listing-modal-buttons">
-          <button 
-            className="cancel-button"
-            onClick={onClose}
-            disabled={isListing}
-          >
-            Cancel
-          </button>
-          <button 
-            className="list-button"
-            onClick={handleList}
-            disabled={!price || isListing}
-          >
-            {isListing ? 'Listing...' : 'List'}
-          </button>
-        </div>
+        {showSuccessPopup ? (
+          <div className="success-popup">
+            <h3>Listing Successful!</h3>
+            <p>Your NFT has been listed successfully.</p>
+            <button className="ok-button" onClick={handleSuccessOk}>
+              OK
+            </button>
+          </div>
+        ) : (
+          <>
+            <h3>List Card for Sale</h3>
+            <div className="price-input-container">
+              <input
+                type="text"
+                value={price}
+                onChange={handlePriceChange}
+                placeholder="Enter price in ETH"
+                className="price-input"
+              />
+              <span className="eth-label">ETH</span>
+            </div>
+            <div className="listing-modal-buttons">
+              <button 
+                className="cancel-button"
+                onClick={onClose}
+                disabled={isListing}
+              >
+                Cancel
+              </button>
+              <button 
+                className="list-button"
+                onClick={handleList}
+                disabled={!price || isListing}
+              >
+                {isListing ? 'Listing...' : 'List'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

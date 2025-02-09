@@ -123,12 +123,19 @@ export default function InlineProductDetails({
 
   const handleAddToCart = () => {
     if (!cartItems.some(item => item.id === ipfsHash)) {
+      if (!tokenId) {
+        setToastMessage('Error: Token ID not found');
+        setToastType('error');
+        setShowToast(true);
+        return;
+      }
       addToCart({
         id: ipfsHash,
         image: `https://gateway.pinata.cloud/ipfs/${ipfsHash}`,
         name: metadata?.name || 'Pokemon Card NFT',
         price: price ? parseFloat(price) : 0,
-        quantity: 1
+        quantity: 1,
+        tokenId: tokenId
       });
       setToastMessage('Added to cart');
       setToastType('success');

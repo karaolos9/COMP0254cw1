@@ -170,6 +170,9 @@ const Profile: React.FC<ProfileProps> = ({ nftItems, account }) => {
                     <span>{item.metadata?.keyvalues?.Type || 'Type'}</span>
                     <div className="name-price">
                       <h5>{item.metadata?.name || 'Pokemon Card NFT'}</h5>
+                      <p className="price">
+                        {item.price ? `${item.price} ETH` : '0.001 ETH'}
+                      </p>
                     </div>
                   </div>
                 </div>
