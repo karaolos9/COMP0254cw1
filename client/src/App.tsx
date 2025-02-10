@@ -853,8 +853,8 @@ function AppContent() {
                 setCurrentView(currentView === 'profile' ? 'main' : 'profile');
               }}
             >
-              <i className="fas fa-user"></i>
-              <span>Profile</span>
+              <i className={`fas ${currentView === 'profile' ? 'fa-home' : 'fa-user'}`}></i>
+              <span>{currentView === 'profile' ? 'Home' : 'Profile'}</span>
             </button>
             <a href="#" id="close"><i className="far fa-times"></i></a>
           </ul>
@@ -1050,8 +1050,8 @@ function AppContent() {
                                   : ""
                             }
                           >
-                            <button 
-                              className="cart-button"
+                            <button
+                              className={`cart-button ${cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) ? 'in-cart' : ''}`}
                               onClick={(e) => handleCartClick(e, item)}
                               disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
                             >
