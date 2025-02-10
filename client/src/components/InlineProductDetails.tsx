@@ -57,6 +57,8 @@ export default function InlineProductDetails({
   const [isPlacingBid, setIsPlacingBid] = useState(false);
   const [isFinalizingAuction, setIsFinalizingAuction] = useState(false);
   const [showFinalizeSuccessPopup, setShowFinalizeSuccessPopup] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelSuccessPopup, setShowCancelSuccessPopup] = useState(false);
   
   useEffect(() => {
     const checkListingStatus = async () => {
@@ -135,6 +137,7 @@ export default function InlineProductDetails({
   const handleCancelListing = async () => {
     if (!window.ethereum || !tokenId) return;
 
+    setIsCancelling(true);
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
@@ -151,17 +154,15 @@ export default function InlineProductDetails({
       setToastMessage('Listing cancelled successfully');
       setToastType('success');
       setShowToast(true);
+      setShowCancelSuccessPopup(true);
       
-      // Close the modal after a short delay
-      setTimeout(() => {
-        onClose();
-        window.location.reload(); // Refresh the page to update listings
-      }, 2000);
     } catch (error) {
       console.error('Error cancelling listing:', error);
       setToastMessage('Error cancelling listing');
       setToastType('error');
       setShowToast(true);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -342,12 +343,18 @@ export default function InlineProductDetails({
     window.location.reload(); // Refresh the page to update the NFT status
   };
 
+  const handleCancelSuccessOk = () => {
+    setShowCancelSuccessPopup(false);
+    onClose();
+    window.location.reload();
+  };
+
   return (
     <>
       <div 
         className="product-details-overlay" 
-        onClick={isPlacingBid || isFinalizingAuction ? undefined : handleClose}
-        style={{ cursor: isPlacingBid || isFinalizingAuction ? 'not-allowed' : 'pointer' }}
+        onClick={isPlacingBid || isFinalizingAuction || isCancelling ? undefined : handleClose}
+        style={{ cursor: isPlacingBid || isFinalizingAuction || isCancelling ? 'not-allowed' : 'pointer' }}
       >
         <div className="product-details-content" onClick={e => e.stopPropagation()}>
           <button className="close-button" onClick={onClose}>×</button>
@@ -401,19 +408,26 @@ export default function InlineProductDetails({
                     </div>
                   </div>
                   <div className="action-buttons">
-                    {isOwner ? (
+                    {isOwner || account?.toLowerCase() === seller?.toLowerCase() ? (
                       <>
-                        {seller?.toLowerCase() === account?.toLowerCase() && isListed && (
-                          <button
-                            className="cancel-listing-button"
-                            onClick={(e) => handleCancelListing()}
-                            disabled={isAuction}
-                            title={isAuction ? "Cannot cancel an active auction" : "Cancel listing"}
-                          >
-                            <i className="fas fa-times"></i>
-                            Cancel Listing
-                          </button>
-                        )}
+                        <button
+                          className="cancel-listing-button"
+                          onClick={handleCancelListing}
+                          disabled={isAuction || isCancelling}
+                          title={isAuction ? "Cannot cancel an active auction" : "Cancel listing"}
+                        >
+                          {isCancelling ? (
+                            <>
+                              <i className="fas fa-spinner fa-spin"></i>
+                              Cancelling...
+                            </>
+                          ) : (
+                            <>
+                              <i className="fas fa-times"></i>
+                              Cancel Listing
+                            </>
+                          )}
+                        </button>
                         <button 
                           className="view-auction-button"
                           onClick={() => {
@@ -563,7 +577,18 @@ export default function InlineProductDetails({
         onHide={() => setShowToast(false)}
         type={toastType}
       />
-      {(isPlacingBid || isFinalizingAuction) && <div className="processing-overlay" />}
+      {showCancelSuccessPopup && (
+        <div className="success-popup-overlay" onClick={handleCancelSuccessOk}>
+          <div className="success-popup" onClick={e => e.stopPropagation()}>
+            <h3>Listing Cancelled Successfully!</h3>
+            <p>Your NFT listing has been cancelled.</p>
+            <button className="ok-button" onClick={handleCancelSuccessOk}>
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+      {(isPlacingBid || isFinalizingAuction || isCancelling) && <div className="processing-overlay" />}
     </>
   );
 } 
