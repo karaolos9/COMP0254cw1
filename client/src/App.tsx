@@ -187,9 +187,14 @@ function AppContent() {
 
     setIsConnecting(true);
     try {
-      // Request account access
-      const accounts = await window.ethereum.request({ 
-        method: 'eth_requestAccounts' 
+      // Force MetaMask to show the account selection popup
+      await window.ethereum.request({
+        method: 'wallet_requestPermissions',
+        params: [{ eth_accounts: {} }]
+      });
+
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
       }) as string[];
 
       if (accounts && accounts.length > 0) {
@@ -264,6 +269,11 @@ function AppContent() {
       setIsConnected(false);
       setBalance(null);
       setCurrentView('main');
+      
+      // Force clear the connection
+      if (window.ethereum && window.ethereum.removeAllListeners) {
+        window.ethereum.removeAllListeners();
+      }
       
       setToastMessage('Wallet disconnected');
       setToastType('success');
