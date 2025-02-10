@@ -192,7 +192,8 @@ export default function InlineProductDetails({
     }
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
     handleAddToCart();
     onClose();
     onCartOpen();
@@ -405,7 +406,7 @@ export default function InlineProductDetails({
                         {seller?.toLowerCase() === account?.toLowerCase() && isListed && (
                           <button
                             className="cancel-listing-button"
-                            onClick={(e) => handleCancelListing(e)}
+                            onClick={(e) => handleCancelListing()}
                             disabled={isAuction}
                             title={isAuction ? "Cannot cancel an active auction" : "Cancel listing"}
                           >
@@ -434,7 +435,7 @@ export default function InlineProductDetails({
                         >
                           {cartItems.some(item => item.id === ipfsHash) ? 'Remove from Cart' : 'Add to Cart'}
                         </button>
-                        <button 
+                        <button
                           className="buy-now-button"
                           onClick={handleBuyNow}
                           disabled={isAuction}

@@ -8,7 +8,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 export async function fetchPinataItems() {
   try {
     // Use the proxy URL instead of direct Pinata URL
-    const response = await fetch(`/api/pinata/data/pinList?pageLimit=100`, {
+    const response = await fetch(`${PINATA_BASE_URL}/data/pinList?pageLimit=100`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${PINATA_JWT}`,
@@ -37,7 +37,7 @@ export async function fetchPinataItems() {
 export async function fetchPinataItemById(id: string) {
   try {
     await delay(500); // Add delay to prevent rate limiting
-    const response = await fetch(`/api/pinata/data/pinList?hashContains=${id}`, {
+    const response = await fetch(`${PINATA_BASE_URL}/data/pinList?hashContains=${id}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${PINATA_JWT}`,

@@ -5,6 +5,9 @@ export const CONTRACT_ADDRESSES = {
   TRADING_CONTRACT: "0xD04E7654B270cec62377610643bbB0FB8a93FcB9"
 };
 
+// Pinata configuration
+export const PINATA_BASE_URL = 'https://api.pinata.cloud';
+
 // Network configuration for Sepolia
 export const NETWORK_CONFIG = {
   chainId: "0xaa36a7", // Sepolia chain ID in hex
