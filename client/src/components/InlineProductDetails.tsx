@@ -345,8 +345,8 @@ export default function InlineProductDetails({
     <>
       <div 
         className="product-details-overlay" 
-        onClick={isPlacingBid ? undefined : handleClose}
-        style={{ cursor: isPlacingBid ? 'not-allowed' : 'pointer' }}
+        onClick={isPlacingBid || isFinalizingAuction ? undefined : handleClose}
+        style={{ cursor: isPlacingBid || isFinalizingAuction ? 'not-allowed' : 'pointer' }}
       >
         <div className="product-details-content" onClick={e => e.stopPropagation()}>
           <button className="close-button" onClick={onClose}>×</button>
@@ -562,7 +562,7 @@ export default function InlineProductDetails({
         onHide={() => setShowToast(false)}
         type={toastType}
       />
-      {isPlacingBid && <div className="processing-overlay" />}
+      {(isPlacingBid || isFinalizingAuction) && <div className="processing-overlay" />}
     </>
   );
 } 
