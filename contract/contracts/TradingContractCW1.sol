@@ -56,6 +56,7 @@ contract PokemonCardTrading is ReentrancyGuard, Pausable, Ownable {
     address public immutable nftContract;
     mapping(uint256 => Listing) public listings;
     mapping(uint256 => Auction) public auctions;
+    mapping(uint256 => address[]) public auctionBidders;
     mapping(address => uint256) private pendingWithdrawals;
 
     // Events
@@ -84,6 +85,16 @@ contract PokemonCardTrading is ReentrancyGuard, Pausable, Ownable {
      * @dev Emitted when a user withdraws funds.
      */
     event Withdrawal(address indexed user, uint256 amount);
+
+    /**
+     * @dev Emitted when a listing is cancelled.
+     */
+    event ListingCancelled(uint256 indexed tokenId, address seller);
+
+    /**
+     * @dev Emitted when an auction is cancelled.
+     */
+    event AuctionCancelled(uint256 indexed tokenId, address seller);
 
     // Modifiers
 
@@ -118,16 +129,8 @@ contract PokemonCardTrading is ReentrancyGuard, Pausable, Ownable {
      * @param tokenId The token identifier of the Pokémon card.
      * @param price The sale price in wei.
      */
-    function listCard(uint256 tokenId, uint256 price) external whenNotPaused nonReentrant{
+    function listCard(uint256 tokenId, uint256 price) external whenNotPaused nonReentrant onlyApprovedOwner(tokenId){
         if (listings[tokenId].isActive) revert NFT_AlreadyListed();
-
-        if (IERC721(nftContract).ownerOf(tokenId) != msg.sender) revert NotOwner(); 
-        //Custom error: NotOwner() is useful for testing purposes (e.g repeated listings attacks) but instead of this, one could include onlyApprovedOwner(tokenId) in the function
-        
-        if (
-            !IERC721(nftContract).isApprovedForAll(msg.sender, address(this)) &&
-            IERC721(nftContract).getApproved(tokenId) != address(this)
-        ) revert NotApproved();
         if (price == 0) revert InvalidPrice();
 
         // Transfer NFT from seller to this contract
@@ -194,7 +197,7 @@ contract PokemonCardTrading is ReentrancyGuard, Pausable, Ownable {
         Auction storage auction = auctions[tokenId];
 
         if (!listing.isActive) revert InactiveListing();
-        if (listing.isAuction && block.timestamp >= auction.endTime) revert AuctionHasEnded();
+        if (block.timestamp >= auction.endTime) revert AuctionHasEnded();
         if (auction.highestBid == 0) {
             if (msg.value < auction.askingPrice)  revert LowBid();
         } else {
@@ -205,6 +208,17 @@ contract PokemonCardTrading is ReentrancyGuard, Pausable, Ownable {
         // Refund the previous highest bidder if necessary
         if (auction.highestBidder != address(0)) {
             pendingWithdrawals[auction.highestBidder] += auction.highestBid;
+            
+            bool exists = false;
+            for (uint256 i = 0; i < auctionBidders[tokenId].length; i++) {
+                if (auctionBidders[tokenId][i] == auction.highestBidder) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) {
+                auctionBidders[tokenId].push(auction.highestBidder);
+            }
         }
 
         auction.highestBid = msg.value;
@@ -213,7 +227,11 @@ contract PokemonCardTrading is ReentrancyGuard, Pausable, Ownable {
         emit AuctionBid(tokenId, msg.sender, msg.value);
     }
 
-    function cancelListing(uint256 tokenId) external nonReentrant {
+    /**
+     * @notice Cancels an active auction.
+     * @param tokenId The token identifier of the Pokémon card.
+     */
+    function cancelFixedPriceListing(uint256 tokenId) external nonReentrant {
         Listing storage listing = listings[tokenId];
         if (listing.seller != msg.sender) revert Unauthorized();
         if (listing.isAuction) revert UseAuctionFunctions();
@@ -221,8 +239,11 @@ contract PokemonCardTrading is ReentrancyGuard, Pausable, Ownable {
         if (IERC721(nftContract).ownerOf(tokenId) != address(this)) revert InvalidNFT();
         IERC721(nftContract).transferFrom(address(this), msg.sender, tokenId);
         delete listings[tokenId];
+
+        emit ListingCancelled(tokenId, msg.sender);
     }
 
+    
     /**
      * @notice Buys a Pokémon card listed for fixed-price sale.
      * @param tokenId The token identifier of the Pokémon card.
@@ -237,7 +258,7 @@ contract PokemonCardTrading is ReentrancyGuard, Pausable, Ownable {
         if (!listing.isActive) revert InactiveListing();
         if (listing.isAuction) revert UseAuctionFunctions();
         if (msg.value < listing.price) revert InsufficientPayment();
-        require(IERC721(nftContract).ownerOf(tokenId) == address(this), "Contract doesn't own the NFT");
+        require(IERC721(nftContract).ownerOf(tokenId) == address(this), "Contract must own the NFT");
 
         listing.isActive = false;
 
@@ -280,24 +301,21 @@ contract PokemonCardTrading is ReentrancyGuard, Pausable, Ownable {
             IERC721(nftContract).safeTransferFrom(address(this), listing.seller, tokenId);
             emit AuctionEnded(tokenId, address(0), 0);
         }
+        //refund previous bidders
+        address[] memory refundAddresses = auctionBidders[tokenId];
+        for (uint i = 0; i < refundAddresses.length; i++) {
+            uint256 refundedAmount = pendingWithdrawals[refundAddresses[i]];
+            if (refundedAmount > 0) {
+                pendingWithdrawals[refundAddresses[i]] = 0;
+                Address.sendValue(payable(refundAddresses[i]), refundedAmount);
+            }
+        } 
         delete auctions[tokenId];
         delete listings[tokenId];
+        delete auctionBidders[tokenId];
     }
 
-    /**
-     * @notice Withdraws funds available from overbid refunds.
-     */
-    function withdrawFunds() external nonReentrant {
-        uint256 amount = pendingWithdrawals[msg.sender];
-        if (amount == 0) revert NothingToWithdraw();
-
-        pendingWithdrawals[msg.sender] = 0;
-        Address.sendValue(payable(msg.sender), amount);
-
-        emit Withdrawal(msg.sender, amount);
-    }
-
-    // Admin Functions
+    // Admin Functions for emergencies and testing
 
     /**
      * @notice Pauses the trading functions.
