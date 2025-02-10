@@ -78,16 +78,22 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
 
       const listing = await tradingContract.listings(tokenId);
       
-      if (!listing.isActive) {
-        throw new Error('This NFT is not listed for sale');
-      }
-      
-      if (listing.seller.toLowerCase() !== currentSigner.toLowerCase()) {
-        throw new Error('You are not the seller of this NFT');
-      }
+      // Check if the NFT is currently listed
+      if (listing.isActive) {
+        // If listed, verify ownership
+        if (listing.seller.toLowerCase() !== currentSigner.toLowerCase()) {
+          throw new Error('You are not the seller of this NFT');
+        }
 
-      if (listing.isAuction) {
-        throw new Error('This NFT is already in an auction');
+        if (listing.isAuction) {
+          throw new Error('This NFT is already in an auction');
+        }
+
+        // Cancel the current listing before starting auction
+        console.log('Cancelling current listing...');
+        const cancelTx = await tradingContract.cancelListing(tokenId);
+        await cancelTx.wait();
+        console.log('Listing cancelled successfully');
       }
 
       // Calculate total duration in seconds
@@ -104,13 +110,7 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
         throw new Error('Starting bid must be greater than 0');
       }
 
-      // First, cancel the current listing
-      console.log('Cancelling current listing...');
-      const cancelTx = await tradingContract.cancelListing(tokenId);
-      await cancelTx.wait();
-      console.log('Listing cancelled successfully');
-
-      // Now start the auction
+      // Start the auction
       console.log('Starting auction with params:', {
         tokenId,
         startingBidInWei: startingBidInWei.toString(),

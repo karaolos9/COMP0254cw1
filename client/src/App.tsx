@@ -122,10 +122,7 @@ function AppContent() {
   
   // NFT Display Management
   const [nftItems, setNftItems] = useState<PinataItem[]>([]);        // All NFT items
-  const [currentPage, setCurrentPage] = useState(1);                  // Current page number
-  const [totalPages, setTotalPages] = useState(1);
   const [currentItems, setCurrentItems] = useState<PinataItem[]>([]);  // Current page items
-  const itemsPerPage = 9;                                            // Items per page (3x3 grid)
   
   // Search and Filter Management
   const [filteredItems, setFilteredItems] = useState<PinataItem[]>([]); // Filtered NFT items
@@ -362,13 +359,45 @@ function AppContent() {
   }, [account]);
 
   // Get Account Balance
-  // const getBalance = async () => {
-  //   if (account && window.ethereum) {
-  //     const provider = new ethers.providers.Web3Provider(window.ethereum);
-  //     const balance = await provider.getBalance(account);
-  //     setBalance(ethers.utils.formatEther(balance)); // Convert balance to ETH
-  //   }
-  // };
+  const getBalance = async () => {
+    if (account && window.ethereum) {
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const balance = await provider.getBalance(account);
+        setBalance(ethers.formatEther(balance));
+      } catch (error) {
+        console.error('Error fetching balance:', error);
+        setBalance('Error');
+      }
+    }
+  };
+
+  // Update useEffect to call getBalance
+  useEffect(() => {
+    if (account) {
+      getBalance();
+      
+      // Set up interval to update balance periodically
+      const interval = setInterval(getBalance, 10000); // Update every 10 seconds
+      
+      return () => clearInterval(interval);
+    } else {
+      setBalance(null);
+    }
+  }, [account]);
+
+  // Add event listener for chain/network changes
+  useEffect(() => {
+    if (window.ethereum) {
+      window.ethereum.on('chainChanged', () => {
+        if (account) getBalance();
+      });
+      
+      window.ethereum.on('accountsChanged', () => {
+        if (account) getBalance();
+      });
+    }
+  }, [account]);
 
   /* Listeners */
   const handleAccountsChanged = (accounts: string[]) => {
@@ -487,17 +516,6 @@ function AppContent() {
     }
   }, [account]);
 
-  /* Pagination */
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    const displayItems = nftItems.filter(item => {
-      const listing = listedNFTs.find(nft => nft.tokenId === item.ipfs_pin_hash);
-      return listing !== undefined;
-    });
-    const startIndex = (page - 1) * itemsPerPage;
-    setCurrentItems(displayItems.slice(startIndex, startIndex + itemsPerPage));
-  };
-
   /**
    * NFT Card Click Handler
    * Opens detailed view of selected NFT
@@ -560,7 +578,6 @@ function AppContent() {
    */
   const handleSearch = (searchTerm: string) => {
     setSearchTerm(searchTerm);
-    setCurrentPage(1);
     setIsSearching(!!searchTerm);
   };
 
@@ -675,19 +692,8 @@ function AppContent() {
       });
 
       setFilteredItems(displayItems);
-      setCurrentItems(displayItems.slice(0, itemsPerPage));
-      setTotalPages(Math.ceil(displayItems.length / itemsPerPage));
     }
-  }, [currentView, nftItems, listedNFTs, account, filters.status, filters.owner, itemsPerPage]);
-
-  // Update useEffect for current items
-  useEffect(() => {
-    const filtered = filteredItems.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    );
-    setCurrentItems(filtered);
-  }, [filteredItems, currentPage, itemsPerPage]);
+  }, [currentView, nftItems, listedNFTs, account, filters.status, filters.owner]);
 
   // Update type selection handler
   const handleTypeSelection = (type: string) => {
@@ -1030,10 +1036,10 @@ function AppContent() {
             <div className="content-area">
               <section id="product1" className="section-p1">
                 <div className="pro-container">
-                  {currentItems.length === 0 ? (
+                  {filteredItems.length === 0 ? (
                     <div className="no-items-message">No NFTs found</div>
                   ) : (
-                    currentItems.map((item) => (
+                    filteredItems.map((item) => (
                       <div 
                         key={item.ipfs_pin_hash} 
                         className="pro"
@@ -1049,7 +1055,6 @@ function AppContent() {
                           {item.price && (
                             <div className="price-tag">
                               <span>{item.price} ETH</span>
-                              {item.isAuction && <span className="auction-badge">Auction</span>}
                             </div>
                           )}
                         </div>
@@ -1079,7 +1084,6 @@ function AppContent() {
                                   e.preventDefault();
                                   e.stopPropagation();
                                   handleCardClick(e, item);
-                                  // Add a small delay to ensure the modal is mounted
                                   setTimeout(() => {
                                     const auctionSection = document.querySelector('.auction-section');
                                     auctionSection?.scrollIntoView({ behavior: 'smooth' });
@@ -1107,48 +1111,6 @@ function AppContent() {
                     ))
                   )}
                 </div>
-              </section>
-
-              <section id="pagination" className="section-p1">
-                {currentPage > 1 && (
-                  <a 
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handlePageChange(currentPage - 1);
-                    }}
-                    className="nav-btn"
-                  >
-                    <i className="fas fa-long-arrow-alt-left"></i>
-                  </a>
-                )}
-                
-                {Array.from({ length: totalPages }, (_, index) => (
-                  <a 
-                    key={index + 1}
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handlePageChange(index + 1);
-                    }}
-                    className={currentPage === index + 1 ? 'active' : ''}
-                  >
-                    {index + 1}
-                  </a>
-                ))}
-
-                {currentPage < totalPages && (
-                  <a 
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handlePageChange(currentPage + 1);
-                    }}
-                    className="nav-btn"
-                  >
-                    <i className="fas fa-long-arrow-alt-right"></i>
-                  </a>
-                )}
               </section>
 
               {isSearching && filteredItems.length === 0 && (

@@ -37,6 +37,8 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
   const [isListed, setIsListed] = useState(false);
   const [isAuction, setIsAuction] = useState(false);
   const [tokenId, setTokenId] = useState<number | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [showCancelSuccessPopup, setShowCancelSuccessPopup] = useState(false);
 
   useEffect(() => {
     const checkListingStatus = async () => {
@@ -87,110 +89,199 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
+  const handleCancelListing = async () => {
+    if (!window.ethereum || !tokenId) return;
+
+    setIsCancelling(true);
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      const tradingContract = new ethers.Contract(
+        CONTRACT_ADDRESSES.TRADING_CONTRACT,
+        CONTRACT_ABIS.TRADING_CONTRACT,
+        signer
+      );
+
+      const tx = await tradingContract.cancelListing(tokenId);
+      await tx.wait();
+
+      setToastMessage('Listing cancelled successfully');
+      setToastType('success');
+      setShowToast(true);
+      setShowCancelSuccessPopup(true);
+      
+    } catch (error) {
+      console.error('Error cancelling listing:', error);
+      setToastMessage('Error cancelling listing');
+      setToastType('error');
+      setShowToast(true);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleCancelSuccessOk = () => {
+    setShowCancelSuccessPopup(false);
+    onClose();
+    window.location.reload();
+  };
+
   return (
-    <div className="product-details-overlay" onClick={onClose}>
-      <div className="product-details-content" onClick={e => e.stopPropagation()}>
-        <button className="close-button" onClick={onClose}>×</button>
-        <div className="product-details-grid">
-          <div className="product-image">
-            <PinataImage hash={ipfsHash} alt="NFT Item" />
-          </div>
-          <div className="product-info">
-            <h2>{metadata?.name || 'Pokemon Card NFT'}</h2>
-            <div className="type-badge-container">
-              <span className={`type-badge ${metadata?.keyvalues?.Type?.toLowerCase()}`}>
-                {metadata?.keyvalues?.Type || 'Type'}
-              </span>
+    <>
+      <div 
+        className="product-details-overlay" 
+        onClick={isCancelling ? undefined : onClose}
+        style={{ cursor: isCancelling ? 'not-allowed' : 'pointer' }}
+      >
+        <div className="product-details-content" onClick={e => e.stopPropagation()}>
+          <button className="close-button" onClick={onClose}>×</button>
+          <div className="product-details-grid">
+            <div className="product-image">
+              <PinataImage hash={ipfsHash} alt="NFT Item" />
             </div>
-            <div className="product-price">
-              <h3>Price:</h3>
-              <span>{isListed ? '0.001 ETH' : 'Not Listed'}</span>
-            </div>
-            <div className="metadata-section">
-              <h3>Details</h3>
-              <div className="metadata-grid">
-                <div className="metadata-item">
-                  <label>Owner</label>
-                  <span>{account ? formatAddress(account) : 'Unknown'}</span>
-                </div>
-                <div className="metadata-item">
-                  <label>Rarity</label>
-                  <span>{metadata?.keyvalues?.Rarity || 'Common'}</span>
-                </div>
-                <div className="metadata-item">
-                  <label>Generation</label>
-                  <span>{metadata?.keyvalues?.Generation || 'Unknown'}</span>
-                </div>
-                <div className="metadata-item">
-                  <label>Move 1</label>
-                  <span>{metadata?.keyvalues?.Move1 || '-'}</span>
-                </div>
-                <div className="metadata-item">
-                  <label>Move 2</label>
-                  <span>{metadata?.keyvalues?.Move2 || '-'}</span>
-                </div>
-                <div className="metadata-item">
-                  <label>Token ID</label>
-                  <span>{tokenId ? `#${tokenId}` : ipfsHash.slice(0, 8)}</span>
+            <div className="product-info">
+              <h2>{metadata?.name || 'Pokemon Card NFT'}</h2>
+              <div className="type-badge-container">
+                <span className={`type-badge ${metadata?.keyvalues?.Type?.toLowerCase()}`}>
+                  {metadata?.keyvalues?.Type || 'Type'}
+                </span>
+              </div>
+              <div className="product-price">
+                <h3>Price:</h3>
+                <span>{isListed ? '0.001 ETH' : 'Not Listed'}</span>
+              </div>
+              <div className="metadata-section">
+                <h3>Details</h3>
+                <div className="metadata-grid">
+                  <div className="metadata-item">
+                    <label>Owner</label>
+                    <span>{account ? formatAddress(account) : 'Unknown'}</span>
+                  </div>
+                  <div className="metadata-item">
+                    <label>Rarity</label>
+                    <span>{metadata?.keyvalues?.Rarity || 'Common'}</span>
+                  </div>
+                  <div className="metadata-item">
+                    <label>Generation</label>
+                    <span>{metadata?.keyvalues?.Generation || 'Unknown'}</span>
+                  </div>
+                  <div className="metadata-item">
+                    <label>Move 1</label>
+                    <span>{metadata?.keyvalues?.Move1 || '-'}</span>
+                  </div>
+                  <div className="metadata-item">
+                    <label>Move 2</label>
+                    <span>{metadata?.keyvalues?.Move2 || '-'}</span>
+                  </div>
+                  <div className="metadata-item">
+                    <label>Token ID</label>
+                    <span>{tokenId ? `#${tokenId}` : ipfsHash.slice(0, 8)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="action-buttons">
-              <button 
-                className="list-button"
-                onClick={() => setShowListingModal(true)}
-                disabled={isListed}
-              >
-                <i className="fas fa-tag"></i>
-                {isListed ? 'Listed' : 'List for Sale'}
-              </button>
-              {isListed && (
-                <button 
-                  className="auction-button"
-                  onClick={() => setShowAuctionModal(true)}
-                  disabled={isAuction}
-                >
-                  <i className="fas fa-gavel"></i>
-                  {isAuction ? 'In Auction' : 'Start Auction'}
-                </button>
-              )}
+              <div className="action-buttons">
+                {/* List/Cancel button group */}
+                {isListed ? (
+                  <button 
+                    className="cancel-listing-button"
+                    onClick={handleCancelListing}
+                    disabled={isCancelling || isAuction}
+                  >
+                    {isCancelling ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin"></i>
+                        Cancelling...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-times"></i>
+                        Cancel Listing
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <button 
+                    className="list-button"
+                    onClick={() => setShowListingModal(true)}
+                    disabled={isAuction}
+                  >
+                    <i className="fas fa-tag"></i>
+                    List for Sale
+                  </button>
+                )}
+
+                {/* Auction button */}
+                {isAuction ? (
+                  <button 
+                    className="view-auction-button"
+                    onClick={() => setShowAuctionModal(true)}
+                  >
+                    <i className="fas fa-gavel"></i>
+                    View Auction
+                  </button>
+                ) : (
+                  <button 
+                    className="auction-button"
+                    onClick={() => setShowAuctionModal(true)}
+                  >
+                    <i className="fas fa-gavel"></i>
+                    Start Auction
+                  </button>
+                )}
+              </div>
             </div>
           </div>
+          {showListingModal && (
+            <ListingModal
+              ipfsHash={ipfsHash}
+              onClose={() => setShowListingModal(false)}
+              onSuccess={() => {
+                setShowListingModal(false);
+                onClose();
+              }}
+              setToastMessage={setToastMessage}
+              setToastType={setToastType}
+              setShowToast={setShowToast}
+            />
+          )}
+          {showAuctionModal && tokenId && (
+            <AuctionModal
+              tokenId={tokenId}
+              onClose={() => setShowAuctionModal(false)}
+              onSuccess={() => {
+                setShowAuctionModal(false);
+                onClose();
+              }}
+              setToastMessage={setToastMessage}
+              setToastType={setToastType}
+              setShowToast={setShowToast}
+            />
+          )}
         </div>
-        {showListingModal && (
-          <ListingModal
-            ipfsHash={ipfsHash}
-            onClose={() => setShowListingModal(false)}
-            onSuccess={() => {
-              setShowListingModal(false);
-              onClose();
-            }}
-            setToastMessage={setToastMessage}
-            setToastType={setToastType}
-            setShowToast={setShowToast}
-          />
-        )}
-        {showAuctionModal && tokenId && (
-          <AuctionModal
-            tokenId={tokenId}
-            onClose={() => setShowAuctionModal(false)}
-            onSuccess={() => {
-              setShowAuctionModal(false);
-              onClose();
-            }}
-            setToastMessage={setToastMessage}
-            setToastType={setToastType}
-            setShowToast={setShowToast}
-          />
-        )}
-        <Toast 
-          message={toastMessage}
-          isVisible={showToast}
-          onHide={() => setShowToast(false)}
-          type={toastType}
-        />
       </div>
-    </div>
+
+      {showCancelSuccessPopup && (
+        <div className="success-popup-overlay" onClick={handleCancelSuccessOk}>
+          <div className="success-popup" onClick={e => e.stopPropagation()}>
+            <h3>Listing Cancelled Successfully!</h3>
+            <p>Your NFT listing has been cancelled.</p>
+            <button className="ok-button" onClick={handleCancelSuccessOk}>
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isCancelling && <div className="processing-overlay" />}
+
+      <Toast 
+        message={toastMessage}
+        isVisible={showToast}
+        onHide={() => setShowToast(false)}
+        type={toastType}
+      />
+    </>
   );
 };
 

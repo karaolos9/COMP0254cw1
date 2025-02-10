@@ -609,7 +609,6 @@ button.white {
 
 /* Cart button specific styles */
 .cart-button {
-  composes: button-base;
   position: relative;
   padding: 8px 16px;
   border-radius: 20px;
@@ -938,7 +937,31 @@ button.white {
   margin-top: 5px;
   min-width: 200px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  z-index: 1001; /* Ensure dropdown appears above other elements */
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 280px;
+}
+
+.wallet-address,
+.wallet-balance {
+  font-family: monospace;
+  color: #1e3a8a;
+  background: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  word-break: break-all;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.disconnect-button {
+  width: 100%;
+  justify-content: center;
+  margin-top: 10px;
 }
 
 /* Wallet section positioning */
@@ -1024,17 +1047,16 @@ button.white {
 
 /* Wallet button styles */
 .wallet-button {
-  background-color: var(--primary-color);
-  color: var(--background-color);
   padding: 8px 16px;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.3s ease;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   gap: 8px;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .wallet-button:hover {
@@ -1047,17 +1069,16 @@ button.white {
 
 /* Wallet info button styles */
 .wallet-info-button {
-  background-color: var(--primary-color);
-  color: var(--background-color);
   padding: 8px 16px;
-  border-radius: 4px;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   gap: 8px;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .wallet-info-button:hover {
@@ -1065,7 +1086,7 @@ button.white {
 }
 
 .wallet-info-button i {
-  color: var(--background-color);
+  color: #1e3a8a !important;
 }
 
 /* Cart panel styles */
@@ -1124,13 +1145,11 @@ button.white {
 
 /* Checkout button styles */
 .checkout-button {
-  background-color: var(--primary-color);
-  color: var(--background-color);
+  padding: 8px 16px;
+  border-radius: 20px;
   border: none;
-  border-radius: 6px;
-  padding: 12px;
-  font-weight: 600;
   cursor: pointer;
+  font-weight: 600;
   transition: background-color 0.3s ease;
   width: 100%;
 }
@@ -1141,13 +1160,14 @@ button.white {
 
 /* Clear cart button styles */
 .clear-cart-button {
-  background: none;
+  padding: 8px 16px;
+  border-radius: 20px;
   border: none;
-  color: var(--error-color);
-  font-size: 14px;
   cursor: pointer;
-  padding: 4px 8px;
-  transition: opacity 0.2s ease;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+  background: none;
+  color: var(--error-color);
 }
 
 .clear-cart-button:hover {
@@ -1194,6 +1214,17 @@ button.white {
   font-size: 14px;
   word-break: break-all;
 }
+
+.wallet-balance {
+  font-family: monospace;
+  color: #1e3a8a;
+  background: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  word-break: break-all;
+}
+
 
 /* Profile button styles */
 .profile-btn {
@@ -1510,21 +1541,7 @@ button.white {
   font-size: 1.1rem;
 }
 
-/* Common button styles */
-.button-base {
-  padding: 8px 16px;
-  border-radius: 20px;
-  border: none;
-  cursor: pointer;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.3s ease;
-  font-size: 14px;
-}
-
-/* Update existing button styles */
+/* Common button base styles */
 .wallet-button,
 .wallet-info-button,
 .cart-button,
@@ -1539,7 +1556,27 @@ button.white {
 .clear-cart-button,
 .disconnect-button,
 .search-button {
-  composes: button-base;
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* Remove all composes references */
+.search-button {
+  background: #1e3a8a;
+  color: white;
+  border-radius: 0 20px 20px 0;
+}
+
+.cart-button {
+  position: relative;
   padding: 8px 16px;
   border-radius: 20px;
   display: flex;
@@ -1553,7 +1590,9 @@ button.white {
 .buy-now-button,
 .checkout-button,
 .list-button,
-.place-bid-button {
+.place-bid-button,
+.disconnect-button
+{
   background: #1e3a8a;
   color: white;
 }
@@ -1562,7 +1601,8 @@ button.white {
 .buy-now-button:hover,
 .checkout-button:hover,
 .list-button:hover,
-.place-bid-button:hover {
+.place-bid-button:hover,
+.disconnect-button:hover {
   background: #2563eb;
   transform: translateY(-2px);
 }
@@ -1639,7 +1679,6 @@ button i {
 
 /* Pagination buttons */
 .pagination-container button {
-  composes: button-base;
   min-width: 40px;
   height: 40px;
   justify-content: center;
@@ -1671,7 +1710,7 @@ button i {
 .name-price .price {
   margin: 0;
   font-size: 0.9rem;
-  color: #059669;
+  color: #000000;
   font-weight: 600;
 }
 
