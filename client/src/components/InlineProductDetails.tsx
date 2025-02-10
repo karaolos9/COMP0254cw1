@@ -270,6 +270,8 @@ export default function InlineProductDetails({
 
   const handleBidSuccessOk = () => {
     setShowBidSuccessPopup(false);
+    onClose();
+    window.location.reload(); // Refresh the page
   };
 
   const handleClose = () => {
@@ -484,8 +486,8 @@ export default function InlineProductDetails({
                   {!isOwner && auctionEndTime > Math.floor(Date.now() / 1000) && !showFinalizeSuccessPopup && (
                     <div className="place-bid">
                       {showBidSuccessPopup ? (
-                        <div className="success-popup-overlay">
-                          <div className="success-popup">
+                        <div className="success-popup-overlay" onClick={handleBidSuccessOk}>
+                          <div className="success-popup" onClick={e => e.stopPropagation()}>
                             <h3>Bid Placed Successfully!</h3>
                             <p>Your bid has been placed on this NFT.</p>
                             <button className="ok-button" onClick={handleBidSuccessOk}>

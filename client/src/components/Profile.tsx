@@ -115,16 +115,39 @@ const Profile: React.FC<ProfileProps> = ({ nftItems, account }) => {
               // If this is my listing but not in nftItems, create a new item for it
               if (isListed && isMyListing && !availableIpfsHashes.has(ipfsHash)) {
                 // Create a basic PinataItem for this NFT
-                additionalNFTs.set(ipfsHash, {
-                  ipfs_pin_hash: ipfsHash,
-                  metadata: {
+                const fetchPinataMetadata = async () => {
+                  try {
+                    const response = await fetch(`/api/pinata/data/pinList?hashContains=${ipfsHash}`, {
+                      headers: {
+                        'Authorization': `Bearer ${import.meta.env.VITE_PINATA_JWT_ADMIN}`,
+                        'Content-Type': 'application/json'
+                      }
+                    });
+                    
+                    if (response.ok) {
+                      const data = await response.json();
+                      const pinataItem = data.rows?.[0];
+                      if (pinataItem?.metadata) {
+                        return pinataItem.metadata;
+                      }
+                    }
+                  } catch (error) {
+                    console.error(`Error fetching Pinata metadata for token ${tokenId}:`, error);
+                  }
+                  return {
                     name: `Token #${tokenId}`,
                     keyvalues: {
                       Type: 'Unknown'
                     }
-                  }
+                  };
+                };
+
+                const metadata = await fetchPinataMetadata();
+                additionalNFTs.set(ipfsHash, {
+                  ipfs_pin_hash: ipfsHash,
+                  metadata
                 });
-                console.log(`Added additional NFT for token ${tokenId}:`, ipfsHash);
+                console.log(`Added additional NFT for token ${tokenId}:`, { ipfsHash, metadata });
               }
 
               tokenToIpfsMap.set(tokenId, ipfsHash);
