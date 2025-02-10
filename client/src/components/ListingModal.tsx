@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESSES, CONTRACT_ABIS } from '../config';
+import '../styles/ListingModal.css';
 
 interface NFTContract extends ethers.BaseContract {
   setApprovalForAll(operator: string, approved: boolean): Promise<ethers.ContractTransaction>;
@@ -32,10 +33,10 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
   };
 
   const handleList = async () => {
-    if (!window.ethereum || !price) return;
-
+    setIsListing(true);
     try {
-      setIsListing(true);
+      if (!window.ethereum || !price) return;
+      
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
@@ -97,9 +98,8 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
       const listTx = await tradingContract.listCard(tokenId, priceInWei);
       await listTx.wait();
       
-      // Show success state
       setIsSuccess(true);
-      
+      setIsListing(false);
     } catch (error: any) {
       console.error("Error listing card:", error);
       setToastMessage('Error listing card: ' + (error as Error).message);
@@ -118,10 +118,10 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
   return (
     <div 
       className="listing-modal-overlay" 
-      onClick={isListing ? undefined : onClose}
+      onClick={isSuccess ? handleSuccessOk : isListing ? undefined : onClose}
       style={{ cursor: isListing ? 'not-allowed' : 'pointer' }}
     >
-      <div className="listing-modal-content" onClick={e => e.stopPropagation()}>
+      <div className="listing-modal-content" onClick={isSuccess ? handleSuccessOk : e => e.stopPropagation()}>
         {isSuccess ? (
           <div className="listing-success">
             <i className="fas fa-check-circle"></i>
@@ -168,7 +168,14 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
           </div>
         )}
       </div>
-      {isListing && <div className="processing-overlay" />}
+      {isListing && (
+        <div className="processing-overlay">
+          <div className="processing-content">
+            <div className="listing-spinner" />
+            <p>Processing your listing...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

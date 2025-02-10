@@ -617,11 +617,18 @@ button.white {
 
 .cart-button i {
   font-size: 16px;
+  color: #1e3a8a !important;
 }
 
 .cart-button:hover:not([disabled]) {
   background-color: #e5e7eb;
   transform: translateY(-2px);
+}
+
+.fa-shopping-cart {
+  color: #1e3a8a;
+  font-size: 16px;
+  transition: all 0.2s ease;
 }
 
 /* Buy now button specific styles */
@@ -635,6 +642,27 @@ button.white {
 .buy-now-button:hover:not([disabled]) {
   background-color: #2563eb;
   transform: translateY(-2px);
+}
+
+/* Auction button specific styles */
+.auction-button {
+  background-color: #047857;
+  color: white;
+  flex-grow: 1;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.auction-button:hover:not([disabled]) {
+  background-color: #065f46;
+  transform: translateY(-2px);
+}
+
+.auction-button i {
+  color: white;
 }
 
 /* Disabled state */
@@ -1235,18 +1263,6 @@ button.white {
   max-height: 600px;
 }
 
-/* Resize handle */
-.product-image::after {
-  content: '↘';
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  color: #6b7280;
-  font-size: 20px;
-  opacity: 0.6;
-  cursor: nw-resize;
-}
-
 .metadata-section {
   margin-top: 20px;
   padding-top: 20px;
@@ -1683,4 +1699,49 @@ button i {
   transform: translateY(-50%);
   color: #6b7280;
   font-weight: 600;
+}
+
+#pagination {
+  text-align: center;
+  padding: 20px 0;
+}
+
+#pagination a {
+  text-decoration: none;
+  background: #fff;
+  padding: 12px 16px;
+  border-radius: 4px;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  margin: 0 4px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+#pagination a:hover {
+  background: var(--primary-color);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+#pagination a.active {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+#pagination a.nav-btn {
+  padding: 12px 20px;
+}
+
+#pagination a.nav-btn i {
+  font-size: 14px;
+}
+
+#pagination a:disabled,
+#pagination a.disabled {
+  background: #e0e0e0;
+  border-color: #e0e0e0;
+  color: #666;
+  cursor: not-allowed;
+  transform: none;
 }

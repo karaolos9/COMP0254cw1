@@ -23,7 +23,7 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
   const [days, setDays] = useState<string>('');
   const [hours, setHours] = useState<string>('');
   const [isStarting, setIsStarting] = useState(false);
-  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleStartingBidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -127,7 +127,7 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
       await tx.wait();
       console.log('Auction started successfully');
 
-      setShowSuccessPopup(true);
+      setIsSuccess(true);
 
     } catch (error: any) {
       console.error('Error starting auction:', error);
@@ -164,71 +164,89 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
   };
 
   return (
-    <div className="listing-modal-overlay" onClick={onClose}>
-      <div className="listing-modal-content" onClick={e => e.stopPropagation()}>
-        {showSuccessPopup ? (
-          <div className="success-popup">
+    <div 
+      className="listing-modal-overlay" 
+      onClick={isSuccess ? handleSuccessOk : isStarting ? undefined : onClose}
+      style={{ cursor: isStarting ? 'not-allowed' : 'pointer' }}
+    >
+      <div className="listing-modal-content" onClick={isSuccess ? handleSuccessOk : e => e.stopPropagation()}>
+        {isSuccess ? (
+          <div className="listing-success">
+            <i className="fas fa-check-circle"></i>
             <h3>Auction Started Successfully!</h3>
-            <p>Your NFT has been put up for auction.</p>
-            <button className="ok-button" onClick={handleSuccessOk}>
+            <button className="success-ok-button" onClick={handleSuccessOk}>
               OK
             </button>
           </div>
         ) : (
-          <>
-            <h3>Start Auction</h3>
-            <div className="price-input-container">
-              <input
-                type="text"
-                value={startingBid}
-                onChange={handleStartingBidChange}
-                placeholder="Enter starting bid in ETH"
-                className="price-input"
-              />
-              <span className="eth-label">ETH</span>
-            </div>
-            <div className="duration-inputs">
-              <div className="duration-input-container">
-                <input
-                  type="text"
-                  value={days}
-                  onChange={handleDaysChange}
-                  placeholder="Days"
-                  className="duration-input"
-                />
-                <span className="duration-label">Days</span>
-              </div>
-              <div className="duration-input-container">
-                <input
-                  type="text"
-                  value={hours}
-                  onChange={handleHoursChange}
-                  placeholder="Hours"
-                  className="duration-input"
-                />
-                <span className="duration-label">Hours</span>
-              </div>
-              <span className="duration-hint">Enter duration (max 30 days)</span>
-            </div>
-            <div className="listing-modal-buttons">
-              <button 
-                className="cancel-button"
-                onClick={onClose}
-                disabled={isStarting}
-              >
-                Cancel
-              </button>
-              <button 
-                className="list-button"
-                onClick={handleStartAuction}
-                disabled={!startingBid || (!days && !hours) || isStarting}
-              >
-                {isStarting ? 'Starting...' : 'Start Auction'}
-              </button>
-            </div>
-          </>
+          <div className={`modal-content-container ${isStarting ? 'fade-out' : 'fade-in'}`}>
+            <h3>{isStarting ? 'Starting Auction...' : 'Start Auction'}</h3>
+            {isStarting ? (
+              <div className="listing-spinner" />
+            ) : (
+              <>
+                <div className="price-input-container">
+                  <input
+                    type="text"
+                    value={startingBid}
+                    onChange={handleStartingBidChange}
+                    placeholder="Enter starting bid in ETH"
+                    className="price-input"
+                  />
+                  <span className="eth-label">ETH</span>
+                </div>
+                <div className="duration-inputs">
+                  <div className="duration-input-container">
+                    <input
+                      type="text"
+                      value={days}
+                      onChange={handleDaysChange}
+                      placeholder="Days"
+                      className="duration-input"
+                    />
+                    <span className="duration-label">Days</span>
+                  </div>
+                  <div className="duration-input-container">
+                    <input
+                      type="text"
+                      value={hours}
+                      onChange={handleHoursChange}
+                      placeholder="Hours"
+                      className="duration-input"
+                    />
+                    <span className="duration-label">Hours</span>
+                  </div>
+                  <span className="duration-hint">Enter duration (max 30 days)</span>
+                </div>
+                <div className="listing-modal-buttons">
+                  <button 
+                    className="cancel-button"
+                    onClick={onClose}
+                    disabled={isStarting}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    className="list-button"
+                    onClick={handleStartAuction}
+                    disabled={!startingBid || (!days && !hours) || isStarting}
+                  >
+                    {isStarting ? 'Starting...' : 'Start Auction'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
+      {isStarting && (
+        <div className="processing-overlay">
+          <div className="processing-content">
+            <div className="listing-spinner" />
+            <p>Processing your auction...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

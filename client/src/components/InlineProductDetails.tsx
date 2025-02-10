@@ -199,7 +199,7 @@ export default function InlineProductDetails({
   };
 
   const handlePlaceBid = async () => {
-    if (!window.ethereum || !bidAmount || !tokenId) return;
+    if (!window.ethereum || !bidAmount) return;
 
     try {
       setIsPlacingBid(true);
@@ -212,58 +212,52 @@ export default function InlineProductDetails({
         signer
       );
 
-      // Convert bid amount to Wei
-      const bidAmountWei = ethers.parseEther(bidAmount);
-
-      // Attempt to place bid
-      const tx = await tradingContract.placeBid(tokenId, {
-        value: bidAmountWei
-      });
-
-      console.log('Bid transaction sent:', tx.hash);
-      await tx.wait();
-      console.log('Bid placed successfully');
-
-      // Show success popup
-      setShowBidSuccessPopup(true);
-
-      // Clear bid amount
-      setBidAmount('');
-
-      // Refresh bid history
-      const filter = tradingContract.filters.AuctionBid(tokenId);
-      const events = await tradingContract.queryFilter(filter);
+      const bidInWei = ethers.parseEther(bidAmount);
       
-      const newBids = events
-        .filter((event): event is ethers.Log & { args: any[] } => 'args' in event)
-        .map(async event => {
-          const block = await event.getBlock();
-          return {
-            bidder: event.args[1],
-            amount: event.args[2],
-            timestamp: block.timestamp
-          };
-        });
+      // Get current listing and auction info
+      const listing = await tradingContract.listings(tokenId);
+      const auction = await tradingContract.auctions(tokenId);
+      
+      // Validate bid amount
+      if (auction.highestBid === 0n) {
+        if (bidInWei < auction.askingPrice) {
+          throw new Error(`Bid must be at least ${ethers.formatEther(auction.askingPrice)} ETH`);
+        }
+      } else {
+        const minBid = (auction.highestBid * 105n) / 100n; // 5% increment
+        if (bidInWei < minBid) {
+          throw new Error(`New bid must be at least 5% higher than current bid (${ethers.formatEther(minBid)} ETH)`);
+        }
+      }
 
-      const resolvedNewBids = await Promise.all(newBids);
-      setCurrentBids(resolvedNewBids.sort((a, b) => b.timestamp - a.timestamp));
-
+      const tx = await tradingContract.placeBid(tokenId, { value: bidInWei });
+      await tx.wait();
+      
+      setShowBidSuccessPopup(true);
+      setToastMessage('Bid placed successfully!');
+      setToastType('success');
+      setShowToast(true);
+      
     } catch (error: any) {
       console.error('Error placing bid:', error);
+      
       let errorMessage = 'Error placing bid: ';
       
       if (error.message.includes('InactiveListing')) {
-        errorMessage += 'This NFT is not actively listed';
-      } else if (error.message.includes('UseAuctionFunctions')) {
-        errorMessage += 'This NFT is not in an auction';
+        errorMessage += 'This auction is not active';
       } else if (error.message.includes('AuctionHasEnded')) {
-        errorMessage += 'The auction has ended';
+        errorMessage += 'This auction has ended';
+      } else if (error.message.includes('NotAnAuction')) {
+        errorMessage += 'This item is not part of an auction';
       } else if (error.message.includes('LowBid')) {
         errorMessage += 'Bid amount is too low';
       } else if (error.message.includes('insufficient funds')) {
-        errorMessage += 'Insufficient funds for bid';
+        errorMessage += 'Insufficient funds in your wallet';
+      } else if (error.message.includes('user rejected')) {
+        errorMessage += 'Transaction was rejected';
       } else {
-        errorMessage += error.message || 'Unknown error';
+        // If we can't identify the specific error, provide a more general message
+        errorMessage += 'Failed to place bid. Please ensure you meet the minimum bid requirements';
       }
       
       setToastMessage(errorMessage);
@@ -347,7 +341,11 @@ export default function InlineProductDetails({
 
   return (
     <>
-      <div className="product-details-overlay" onClick={handleClose}>
+      <div 
+        className="product-details-overlay" 
+        onClick={isPlacingBid ? undefined : handleClose}
+        style={{ cursor: isPlacingBid ? 'not-allowed' : 'pointer' }}
+      >
         <div className="product-details-content" onClick={e => e.stopPropagation()}>
           <button className="close-button" onClick={onClose}>×</button>
           
@@ -402,13 +400,17 @@ export default function InlineProductDetails({
                   <div className="action-buttons">
                     {isOwner ? (
                       <>
-                        <button 
-                          className="cancel-listing-button"
-                          onClick={handleCancelListing}
-                        >
-                          <i className="fas fa-times"></i>
-                          Cancel Listing
-                        </button>
+                        {seller?.toLowerCase() === account?.toLowerCase() && isListed && (
+                          <button
+                            className="cancel-listing-button"
+                            onClick={(e) => handleCancelListing(e)}
+                            disabled={isAuction}
+                            title={isAuction ? "Cannot cancel an active auction" : "Cancel listing"}
+                          >
+                            <i className="fas fa-times"></i>
+                            Cancel Listing
+                          </button>
+                        )}
                         <button 
                           className="view-auction-button"
                           onClick={() => {
@@ -512,7 +514,7 @@ export default function InlineProductDetails({
                             onClick={handlePlaceBid}
                             disabled={!bidAmount || Number(bidAmount) <= 0 || isPlacingBid}
                           >
-                            Place Bid
+                            {isPlacingBid ? 'Placing Bid...' : 'Place Bid'}
                           </button>
                         </>
                       )}
@@ -558,6 +560,7 @@ export default function InlineProductDetails({
         onHide={() => setShowToast(false)}
         type={toastType}
       />
+      {isPlacingBid && <div className="processing-overlay" />}
     </>
   );
 } 

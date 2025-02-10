@@ -1057,13 +1057,31 @@ function AppContent() {
                             >
                               <i className="fas fa-shopping-cart"></i>
                             </button>
-                            <button 
-                              className="buy-now-button"
-                              onClick={(e) => handleBuyNow(e, item)}
-                              disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
-                            >
-                              Buy Now
-                            </button>
+                            {item.isAuction ? (
+                              <button 
+                                className="auction-button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleCardClick(e, item);
+                                  // Add a small delay to ensure the modal is mounted
+                                  setTimeout(() => {
+                                    const auctionSection = document.querySelector('.auction-section');
+                                    auctionSection?.scrollIntoView({ behavior: 'smooth' });
+                                  }, 100);
+                                }}
+                              >
+                              View Auction
+                              </button>
+                            ) : (
+                              <button 
+                                className="buy-now-button"
+                                onClick={(e) => handleBuyNow(e, item)}
+                                disabled={item.seller?.toLowerCase() === account?.toLowerCase()}
+                              >
+                                Buy Now
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
