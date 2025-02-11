@@ -8,9 +8,14 @@ interface SearchBarProps {
 export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newSearchTerm = e.target.value;
+    setSearchTerm(newSearchTerm);
+    onSearch(newSearchTerm);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(searchTerm);
   };
 
   return (
@@ -21,7 +26,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
           type="text"
           placeholder="Search Pokemon..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={handleChange}
           className="search-input"
         />
       </form>

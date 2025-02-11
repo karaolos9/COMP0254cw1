@@ -651,7 +651,8 @@ function AppContent() {
         totalItems: nftItems.length,
         listedNFTs: listedNFTs.length,
         filters,
-        account
+        account,
+        searchTerm
       });
 
       // Map of listed NFTs by IPFS hash for quick lookup
@@ -668,6 +669,13 @@ function AppContent() {
         tokenId: listedNFTsMap.get(item.ipfs_pin_hash)?.tokenId,
         isAuction: listedNFTsMap.get(item.ipfs_pin_hash)?.isAuction || false
       }));
+
+      // Apply name search filter if there's a search term
+      if (searchTerm) {
+        displayItems = displayItems.filter(item => 
+          item.metadata?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
 
       // Filter based on listing status
       if (filters.status === 'listed') {
@@ -688,12 +696,13 @@ function AppContent() {
       console.log("Filtered items:", {
         displayItems,
         filterStatus: filters.status,
-        filterOwner: filters.owner
+        filterOwner: filters.owner,
+        searchTerm
       });
 
       setFilteredItems(displayItems);
     }
-  }, [currentView, nftItems, listedNFTs, account, filters.status, filters.owner]);
+  }, [currentView, nftItems, listedNFTs, account, filters.status, filters.owner, searchTerm]);
 
   // Update type selection handler
   const handleTypeSelection = (type: string) => {
