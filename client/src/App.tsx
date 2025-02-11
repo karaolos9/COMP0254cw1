@@ -819,7 +819,7 @@ function AppContent() {
             <SearchBar onSearch={handleSearch} />
             <button 
               className="cart-button"
-              onClick={() => setIsCartOpen(true)}
+              onClick={() => setIsCartOpen(!isCartOpen)}
             >
               <i className="fas fa-shopping-cart"></i>
               {cartItemCount > 0 && (

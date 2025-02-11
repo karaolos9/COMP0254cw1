@@ -486,31 +486,38 @@ export default function InlineProductDetails({
                       </>
                     ) : (
                       <>
-                        <button 
-                          className="add-to-cart-button"
-                          onClick={handleAddToCart}
-                          disabled={isAuction}
-                        >
-                          {cartItems.some(item => item.id === ipfsHash) ? 'Remove from Cart' : 'Add to Cart'}
-                        </button>
-                        <button
-                          className="buy-now-button"
-                          onClick={handleBuyNow}
-                          disabled={isAuction}
-                        >
-                          Buy Now
-                        </button>
-                        <button 
-                          className="view-auction-button"
-                          onClick={() => {
-                            const auctionSection = document.querySelector('.auction-section');
-                            auctionSection?.scrollIntoView({ behavior: 'smooth' });
-                          }}
-                          disabled={!isAuction}
-                        >
-                          <i className="fas fa-gavel"></i>
-                          View Auction
-                        </button>
+                        {isListed && (
+                          <>
+                            <button 
+                              className={`cart-button ${cartItems.some(item => item.id === ipfsHash) ? 'in-cart' : ''}`}
+                              onClick={handleAddToCart}
+                              disabled={isAuction}
+                            >
+                              <i className="fas fa-shopping-cart"></i>
+                            </button>
+                            <button
+                              className="buy-now-button"
+                              onClick={handleBuyNow}
+                              disabled={isAuction}
+                            >
+                              Buy Now
+                            </button>
+                          </>
+                        )}
+                        
+                        {isAuction && (
+                          <button 
+                            className="view-auction-button"
+                            onClick={() => {
+                              const auctionSection = document.querySelector('.auction-section');
+                              auctionSection?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                            disabled={!isAuction}
+                          >
+                            <i className="fas fa-gavel"></i>
+                            View Auction
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
