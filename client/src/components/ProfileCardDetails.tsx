@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PinataImage } from './PinataImage';
 import { PinataItem } from '../types';
 import ListingModal from './ListingModal';
@@ -71,6 +71,7 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
   const [isFinalizingAuction, setIsFinalizingAuction] = useState(false);
   const [showFinalizeSuccessPopup, setShowFinalizeSuccessPopup] = useState(false);
   const [showBidOverlay, setShowBidOverlay] = useState(false);
+  const auctionSectionRef = useRef<HTMLDivElement>(null);
 
   // Add console log to track rendering
   console.log('Rendering ProfileCardDetails with isAuction:', isAuction);
@@ -310,6 +311,10 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
     window.location.reload();
   };
 
+  const scrollToAuction = () => {
+    auctionSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <>
       <div 
@@ -425,7 +430,7 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
                   {isAuction ? (
                     <button 
                       className="view-auction-button"
-                      onClick={() => setShowAuctionModal(true)}
+                      onClick={scrollToAuction}
                     >
                       <i className="fas fa-gavel"></i>
                       View Auction
@@ -443,12 +448,10 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
               </div>
             </div>
 
-            {/* Auction Section with debug wrapper */}
-            <div>
-              
+            {/* Auction Section with ref */}
+            <div ref={auctionSectionRef}>
               {isAuction ? (
                 <div>
-
                   <div className="auction-header">
                     <h3>Auction Details</h3>
                     <div className="auction-countdown">
