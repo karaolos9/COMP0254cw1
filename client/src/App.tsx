@@ -37,8 +37,8 @@ interface ToastProps {
 }
 
 // Add these near the top of your AppContent component
-const NFT_CONTRACT_ADDRESS = "0xC252E988c7dE8a2BFbf6cE0a1A92FECE5A74C4D1";
-const TRADING_CONTRACT_ADDRESS = "0xD04E7654B270cec62377610643bbB0FB8a93FcB9";
+const NFT_CONTRACT_ADDRESS = "0x9550C786877ECdfbEb4dE17b9644B5b47B1BF1aF";
+const TRADING_CONTRACT_ADDRESS = "0x6a8e1C4558F395E00A2dc0439A097B293355F546";
 
 // Add these new interfaces
 interface FilterState {

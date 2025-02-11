@@ -4,7 +4,7 @@ async function main() {
   console.log("Deploying contracts...");
   
   // Deploy NFT contract
-  const NFT = await ethers.getContractFactory("pokemonNFT");
+  const NFT = await ethers.getContractFactory("PokemonCardCreation");
   const [deployer] = await ethers.getSigners();  // Get the deployer's address
   const nft = await NFT.deploy(deployer.address); // Pass the deployer's address as initialOwner
   await nft.waitForDeployment();
