@@ -36,8 +36,11 @@
   padding: 20px;
   align-items: start;
   min-height: min-content;
-  border-bottom: 1px solid #e5e7eb;
   margin-bottom: 20px;
+}
+
+.product-details-grid.with-border {
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .close-button {

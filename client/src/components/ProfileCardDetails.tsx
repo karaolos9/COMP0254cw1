@@ -229,42 +229,6 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
     }
   };
 
-  const handlePlaceBid = async () => {
-    if (!window.ethereum || !bidAmount || !tokenId) return;
-
-    try {
-      setIsPlacingBid(true);
-      setShowBidOverlay(true);
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      
-      const tradingContract = new ethers.Contract(
-        CONTRACT_ADDRESSES.TRADING_CONTRACT,
-        CONTRACT_ABIS.TRADING_CONTRACT,
-        signer
-      );
-
-      const bidAmountWei = ethers.parseEther(bidAmount);
-      const tx = await tradingContract.placeBid(tokenId, { value: bidAmountWei });
-      await tx.wait();
-
-      setToastMessage('Bid placed successfully');
-      setToastType('success');
-      setShowToast(true);
-      setShowBidSuccessPopup(true);
-      setBidAmount('');
-      
-    } catch (error) {
-      console.error('Error placing bid:', error);
-      setToastMessage('Error placing bid');
-      setToastType('error');
-      setShowToast(true);
-    } finally {
-      setIsPlacingBid(false);
-      setShowBidOverlay(false);
-    }
-  };
-
   const handleFinalizeAuction = async () => {
     if (!window.ethereum || !tokenId) return;
 
@@ -287,9 +251,26 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
       setShowToast(true);
       setShowFinalizeSuccessPopup(true);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error finalizing auction:', error);
-      setToastMessage('Error finalizing auction');
+      
+      let errorMessage = 'Error finalizing auction: ';
+      
+      if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
+        errorMessage = 'Transaction was cancelled';
+      } else if (error.message.includes('InactiveListing')) {
+        errorMessage += 'This auction is not active';
+      } else if (error.message.includes('NotAnAuction')) {
+        errorMessage += 'This item is not part of an auction';
+      } else if (error.message.includes('AuctionNotEnded')) {
+        errorMessage += 'The auction has not ended yet';
+      } else if (error.message.includes('Unauthorized')) {
+        errorMessage += 'You are not authorized to finalize this auction';
+      } else {
+        errorMessage += error.reason || error.message || 'Unknown error';
+      }
+      
+      setToastMessage(errorMessage);
       setToastType('error');
       setShowToast(true);
     } finally {
@@ -319,7 +300,12 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
     <>
       <div 
         className="product-details-overlay" 
-        onClick={isCancelling ? undefined : onClose}
+        onClick={isCancelling ? undefined : () => {
+          onClose();
+          if (showFinalizeSuccessPopup) {
+            window.location.reload();
+          }
+        }}
         style={{ cursor: isCancelling ? 'not-allowed' : 'pointer' }}
       >
         <div 
@@ -345,7 +331,9 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
             }}
           >
             
-            <div className="product-details-grid">
+            <div 
+              className={`product-details-grid ${isAuction ? 'with-border' : ''}`}
+            >
               <div className="product-image">
                 <PinataImage hash={ipfsHash} alt="NFT Item" />
               </div>
@@ -450,7 +438,7 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
 
             {/* Auction Section with ref */}
             <div ref={auctionSectionRef}>
-              {isAuction ? (
+              {isAuction && (
                 <div>
                   <div className="auction-header">
                     <h3>Auction Details</h3>
@@ -476,25 +464,7 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
                     )}
                   </div>
 
-                  {timeLeft !== 'Auction ended' ? (
-                    <div className="place-bid">
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={bidAmount}
-                        onChange={(e) => setBidAmount(e.target.value)}
-                        placeholder="Enter bid amount in ETH"
-                        disabled={isPlacingBid}
-                      />
-                      <button
-                        className="place-bid-button"
-                        onClick={handlePlaceBid}
-                        disabled={!bidAmount || isPlacingBid}
-                      >
-                        {isPlacingBid ? 'Placing Bid...' : 'Place Bid'}
-                      </button>
-                    </div>
-                  ) : (
+                  {timeLeft == 'Auction ended' && (
                     <div className="finalize-auction">
                       <button
                         className="finalize-auction-button"
@@ -505,16 +475,6 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
                       </button>
                     </div>
                   )}
-                </div>
-              ) : (
-                <div style={{ 
-                  padding: '20px',
-                  background: '#ffebee',
-                  margin: '20px',
-                  borderRadius: '8px',
-                  textAlign: 'center'
-                }}>
-                  Not an auction (isAuction is false)
                 </div>
               )}
             </div>

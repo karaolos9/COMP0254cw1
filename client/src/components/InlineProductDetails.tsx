@@ -334,8 +334,8 @@ export default function InlineProductDetails({
   const handleFinalizeAuction = async () => {
     if (!window.ethereum || !tokenId) return;
 
+    setIsFinalizingAuction(true);
     try {
-      setIsFinalizingAuction(true);
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
@@ -346,29 +346,22 @@ export default function InlineProductDetails({
       );
 
       const tx = await tradingContract.finalizeAuction(tokenId);
-      console.log('Finalize auction transaction sent:', tx.hash);
       await tx.wait();
-      console.log('Auction finalized successfully');
 
+      setToastMessage('Auction finalized successfully');
+      setToastType('success');
+      setShowToast(true);
       setShowFinalizeSuccessPopup(true);
-
+      
     } catch (error: any) {
       console.error('Error finalizing auction:', error);
-      let errorMessage = 'Error finalizing auction: ';
       
-      if (error.message.includes('InactiveListing')) {
-        errorMessage += 'This NFT is not actively listed';
-      } else if (error.message.includes('NotAnAuction')) {
-        errorMessage += 'This NFT is not in an auction';
-      } else if (error.message.includes('AuctionNotEnded')) {
-        errorMessage += 'The auction has not ended yet';
-      } else if (error.message.includes('Unauthorized')) {
-        errorMessage += 'You are not authorized to finalize this auction';
+      // Handle user rejection specifically
+      if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
+        setToastMessage('Transaction was cancelled');
       } else {
-        errorMessage += error.message || 'Unknown error';
+        setToastMessage('Error finalizing auction: ' + (error.reason || error.message || 'Unknown error'));
       }
-      
-      setToastMessage(errorMessage);
       setToastType('error');
       setShowToast(true);
     } finally {
@@ -392,7 +385,12 @@ export default function InlineProductDetails({
     <>
       <div 
         className="product-details-overlay" 
-        onClick={isPlacingBid || isFinalizingAuction || isCancelling ? undefined : handleClose}
+        onClick={isPlacingBid || isFinalizingAuction || isCancelling ? undefined : () => {
+          onClose();
+          if (showFinalizeSuccessPopup) {
+            window.location.reload();
+          }
+        }}
         style={{ cursor: isPlacingBid || isFinalizingAuction || isCancelling ? 'not-allowed' : 'pointer' }}
       >
         <div className="product-details-content" onClick={e => e.stopPropagation()}>
