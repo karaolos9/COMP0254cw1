@@ -162,6 +162,21 @@ function AppContent() {
 
   const [listedNFTs, setListedNFTs] = useState<NFTListing[]>([]);
 
+  // Add state for collapsed sections
+  const [collapsedSections, setCollapsedSections] = useState({
+    status: false,
+    owner: false,
+    price: false,
+    traits: false
+  });
+
+  const toggleSection = (section: keyof typeof collapsedSections) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
   /**
    * Checks if MetaMask is installed and returns a boolean
    */
@@ -905,137 +920,157 @@ function AppContent() {
             <aside className="sidebar">
               {/* Status Filter */}
               <div className="filter-section">
-                <h3>Status</h3>
-                <div className="filter-option">
-                  <input
-                    type="radio"
-                    id="status-all"
-                    name="status"
-                    checked={filters.status === 'all'}
-                    onChange={() => handleFilterChange('status', 'all')}
-                  />
-                  <label htmlFor="status-all">All</label>
-                </div>
-                <div className="filter-option">
-                  <input
-                    type="radio"
-                    id="status-listed"
-                    name="status"
-                    checked={filters.status === 'listed'}
-                    onChange={() => handleFilterChange('status', 'listed')}
-                  />
-                  <label htmlFor="status-listed">Listed</label>
-                </div>
-                <div className="filter-option">
-                  <input
-                    type="radio"
-                    id="status-auction"
-                    name="status"
-                    checked={filters.status === 'auction'}
-                    onChange={() => handleFilterChange('status', 'auction')}
-                  />
-                  <label htmlFor="status-auction">On Auction</label>
+                <h3 onClick={() => toggleSection('status')}>
+                  Status
+                  <i className={`fas fa-chevron-down ${collapsedSections.status ? 'rotated' : ''}`}></i>
+                </h3>
+                <div className={`filter-content ${collapsedSections.status ? 'collapsed' : 'expanded'}`}>
+                  <div className="filter-option">
+                    <input
+                      type="radio"
+                      id="status-all"
+                      name="status"
+                      checked={filters.status === 'all'}
+                      onChange={() => handleFilterChange('status', 'all')}
+                    />
+                    <label htmlFor="status-all">All</label>
+                  </div>
+                  <div className="filter-option">
+                    <input
+                      type="radio"
+                      id="status-listed"
+                      name="status"
+                      checked={filters.status === 'listed'}
+                      onChange={() => handleFilterChange('status', 'listed')}
+                    />
+                    <label htmlFor="status-listed">Listed</label>
+                  </div>
+                  <div className="filter-option">
+                    <input
+                      type="radio"
+                      id="status-auction"
+                      name="status"
+                      checked={filters.status === 'auction'}
+                      onChange={() => handleFilterChange('status', 'auction')}
+                    />
+                    <label htmlFor="status-auction">On Auction</label>
+                  </div>
                 </div>
               </div>
 
               {/* Owner Filter */}
               <div className="filter-section">
-                <h3>Owner</h3>
-                <div className="filter-option">
-                  <input
-                    type="radio"
-                    id="owner-all"
-                    name="owner"
-                    checked={filters.owner === 'all'}
-                    onChange={() => handleFilterChange('owner', 'all')}
-                  />
-                  <label htmlFor="owner-all">All</label>
-                </div>
-                <div className="filter-option">
-                  <input
-                    type="radio"
-                    id="owner-me"
-                    name="owner"
-                    checked={filters.owner === 'me'}
-                    onChange={() => handleFilterChange('owner', 'me')}
-                  />
-                  <label htmlFor="owner-me">My NFTs</label>
+                <h3 onClick={() => toggleSection('owner')}>
+                  Owner
+                  <i className={`fas fa-chevron-down ${collapsedSections.owner ? 'rotated' : ''}`}></i>
+                </h3>
+                <div className={`filter-content ${collapsedSections.owner ? 'collapsed' : 'expanded'}`}>
+                  <div className="filter-option">
+                    <input
+                      type="radio"
+                      id="owner-all"
+                      name="owner"
+                      checked={filters.owner === 'all'}
+                      onChange={() => handleFilterChange('owner', 'all')}
+                    />
+                    <label htmlFor="owner-all">All</label>
+                  </div>
+                  <div className="filter-option">
+                    <input
+                      type="radio"
+                      id="owner-me"
+                      name="owner"
+                      checked={filters.owner === 'me'}
+                      onChange={() => handleFilterChange('owner', 'me')}
+                    />
+                    <label htmlFor="owner-me">My NFTs</label>
+                  </div>
                 </div>
               </div>
 
               {/* Price Range Filter */}
               <div className="filter-section">
-                <h3>Price</h3>
-                <div className="price-range">
-                  <input
-                    type="number"
-                    placeholder="Min"
-                    className="price-input"
-                    value={filters.priceRange.min || ''}
-                    onChange={(e) => handlePriceRangeChange(
-                      e.target.value ? Number(e.target.value) : null,
-                      filters.priceRange.max
-                    )}
-                  />
-                  <span>to</span>
-                  <input
-                    type="number"
-                    placeholder="Max"
-                    className="price-input"
-                    value={filters.priceRange.max || ''}
-                    onChange={(e) => handlePriceRangeChange(
-                      filters.priceRange.min,
-                      e.target.value ? Number(e.target.value) : null
-                    )}
-                  />
+                <h3 onClick={() => toggleSection('price')}>
+                  Price
+                  <i className={`fas fa-chevron-down ${collapsedSections.price ? 'rotated' : ''}`}></i>
+                </h3>
+                <div className={`filter-content ${collapsedSections.price ? 'collapsed' : 'expanded'}`}>
+                  <div className="price-range">
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      className="price-input"
+                      value={filters.priceRange.min || ''}
+                      onChange={(e) => handlePriceRangeChange(
+                        e.target.value ? Number(e.target.value) : null,
+                        filters.priceRange.max
+                      )}
+                    />
+                    <span>to</span>
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      className="price-input"
+                      value={filters.priceRange.max || ''}
+                      onChange={(e) => handlePriceRangeChange(
+                        filters.priceRange.min,
+                        e.target.value ? Number(e.target.value) : null
+                      )}
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Traits Filter */}
               <div className="filter-section">
-                <h3>Traits</h3>
-                <div className="filter-option">
-                  <div className="type-selector">
-                    <button 
-                      className="type-dropdown-button"
-                      onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
-                    >
-                      <div className="selected-types">
-                        {filters.types.length === 0 ? (
-                          <span>Select Types</span>
-                        ) : (
-                          <div className="type-tags">
-                            {filters.types.map(type => (
-                              <div key={type} className={`type-tag ${type.toLowerCase()}`}>
-                                {type}
-                                <button
-                                  className="remove-type"
-                                  onClick={(e) => handleRemoveType(type, e)}
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <i className="fas fa-chevron-down"></i>
-                    </button>
-                    {isTypeDropdownOpen && (
-                      <div className="type-dropdown-panel">
-                        {pokemonTypes.map(type => (
-                          <div 
-                            key={type}
-                            className={`type-badge ${type.toLowerCase()} ${
-                              filters.types.includes(type) ? 'selected' : ''
-                            }`}
-                            onClick={() => handleTypeSelection(type)}
-                          >
-                            {type}
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                <h3 onClick={() => toggleSection('traits')}>
+                  Traits
+                  <i className={`fas fa-chevron-down ${collapsedSections.traits ? 'rotated' : ''}`}></i>
+                </h3>
+                <div className={`filter-content ${collapsedSections.traits ? 'collapsed' : 'expanded'}`}>
+                  <div className="filter-option">
+                    <div className="type-selector">
+                      <button 
+                        className="type-dropdown-button"
+                        onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
+                      >
+                        <div className="selected-types">
+                          {filters.types.length === 0 ? (
+                            <span>Select Types</span>
+                          ) : (
+                            <div className="type-tags">
+                              {filters.types.map(type => (
+                                <div key={type} className={`type-tag ${type.toLowerCase()}`}>
+                                  {type}
+                                  <button
+                                    className="remove-type"
+                                    onClick={(e) => handleRemoveType(type, e)}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <i className="fas fa-chevron-down"></i>
+                      </button>
+                      {isTypeDropdownOpen && (
+                        <div className="type-dropdown-panel">
+                          {pokemonTypes.map(type => (
+                            <div 
+                              key={type}
+                              className={`type-badge ${type.toLowerCase()} ${
+                                filters.types.includes(type) ? 'selected' : ''
+                              }`}
+                              onClick={() => handleTypeSelection(type)}
+                            >
+                              {type}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
