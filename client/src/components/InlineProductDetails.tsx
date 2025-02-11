@@ -6,16 +6,29 @@ import { ethers } from 'ethers';
 import { Toast } from './Toast';
 import { CONTRACT_ADDRESSES, CONTRACT_ABIS } from '../config';
 
+// Add Pokemon type mapping
+const pokemonTypes = [
+  'NORMAL', 'FIRE', 'WATER', 'ELECTRIC', 'GRASS', 'ICE',
+  'FIGHTING', 'POISON', 'GROUND', 'FLYING', 'PSYCHIC', 'BUG',
+  'ROCK', 'GHOST', 'DRAGON', 'DARK', 'STEEL', 'FAIRY', 'LIGHT'
+];
+
+// Add interface for Pokemon stats
+interface PokemonStats {
+  hp: number;
+  attack: number;
+  defense: number;
+  speed: number;
+  special: number;
+  pokemonType: number;
+}
+
 interface InlineProductDetailsProps {
   ipfsHash: string;
   metadata?: {
     name?: string;
     keyvalues?: {
       Type?: string;
-      Rarity?: string;
-      Generation?: string;
-      Move1?: string;
-      Move2?: string;
     };
   };
   onClose: () => void;
@@ -59,6 +72,7 @@ export default function InlineProductDetails({
   const [showFinalizeSuccessPopup, setShowFinalizeSuccessPopup] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelSuccessPopup, setShowCancelSuccessPopup] = useState(false);
+  const [pokemonStats, setPokemonStats] = useState<PokemonStats | null>(null);
   
   useEffect(() => {
     const checkListingStatus = async () => {
@@ -102,6 +116,28 @@ export default function InlineProductDetails({
 
           const resolvedBids = await Promise.all(bids);
           setCurrentBids(resolvedBids.sort((a, b) => b.timestamp - a.timestamp)); // Sort by most recent
+        }
+
+        // Get NFT contract to fetch Pokemon stats
+        const nftContract = new ethers.Contract(
+          CONTRACT_ADDRESSES.NFT_CONTRACT,
+          CONTRACT_ABIS.NFT_CONTRACT,
+          provider
+        );
+
+        // Fetch Pokemon stats for this token
+        try {
+          const stats = await nftContract.getPokemonStats(tokenId);
+          setPokemonStats({
+            hp: Number(stats.hp),
+            attack: Number(stats.attack),
+            defense: Number(stats.defense),
+            speed: Number(stats.speed),
+            special: Number(stats.special),
+            pokemonType: Number(stats.pokemonType)
+          });
+        } catch (error) {
+          console.error('Error fetching Pokemon stats:', error);
         }
       } catch (error) {
         console.error('Error checking listing status:', error);
@@ -382,28 +418,36 @@ export default function InlineProductDetails({
                     <h3>Details</h3>
                     <div className="metadata-grid">
                       <div className="metadata-item">
-                        <label>Owner</label>
-                        <span>{seller ? formatAddress(seller) : 'Unknown'}</span>
+                        <label>HP</label>
+                        <span>{pokemonStats?.hp || 'Loading...'}</span>
                       </div>
                       <div className="metadata-item">
-                        <label>Rarity</label>
-                        <span>{metadata?.keyvalues?.Rarity || 'Common'}</span>
+                        <label>Attack</label>
+                        <span>{pokemonStats?.attack || 'Loading...'}</span>
                       </div>
                       <div className="metadata-item">
-                        <label>Generation</label>
-                        <span>{metadata?.keyvalues?.Generation || 'Unknown'}</span>
+                        <label>Defense</label>
+                        <span>{pokemonStats?.defense || 'Loading...'}</span>
                       </div>
                       <div className="metadata-item">
-                        <label>Move 1</label>
-                        <span>{metadata?.keyvalues?.Move1 || '-'}</span>
+                        <label>Speed</label>
+                        <span>{pokemonStats?.speed || 'Loading...'}</span>
                       </div>
                       <div className="metadata-item">
-                        <label>Move 2</label>
-                        <span>{metadata?.keyvalues?.Move2 || '-'}</span>
+                        <label>Special</label>
+                        <span>{pokemonStats?.special || 'Loading...'}</span>
                       </div>
                       <div className="metadata-item">
                         <label>Token ID</label>
                         <span>{tokenId ? `#${tokenId}` : ipfsHash.slice(0, 8)}</span>
+                      </div>
+                      <div className="metadata-item">
+                        <label>Owner</label>
+                        <span>{seller ? formatAddress(seller) : 'Unknown'}</span>
+                      </div>
+                      <div className="metadata-item">
+                        <label>Contract</label>
+                        <span>{formatAddress(CONTRACT_ADDRESSES.NFT_CONTRACT)}</span>
                       </div>
                     </div>
                   </div>

@@ -7,12 +7,12 @@ import { Toast } from './Toast';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESSES, CONTRACT_ABIS } from '../config';
 
-  // Add Pokemon type mapping
-  const pokemonTypes = [
-    'NORMAL', 'FIRE', 'WATER', 'ELECTRIC', 'GRASS', 'ICE',
-    'FIGHTING', 'POISON', 'GROUND', 'FLYING', 'PSYCHIC', 'BUG',
-    'ROCK', 'GHOST', 'DRAGON', 'DARK', 'STEEL', 'FAIRY', 'LIGHT'
-  ];
+// Add Pokemon type mapping
+const pokemonTypes = [
+  'NORMAL', 'FIRE', 'WATER', 'ELECTRIC', 'GRASS', 'ICE',
+  'FIGHTING', 'POISON', 'GROUND', 'FLYING', 'PSYCHIC', 'BUG',
+  'ROCK', 'GHOST', 'DRAGON', 'DARK', 'STEEL', 'FAIRY', 'LIGHT'
+];
 
 // Add interface for Pokemon stats
 interface PokemonStats {
@@ -30,21 +30,19 @@ interface ProfileCardDetailsProps {
     name?: string;
     keyvalues?: {
       Type?: string;
-      Rarity?: string;
-      Generation?: string;
-      Move1?: string;
-      Move2?: string;
     };
   };
   onClose: () => void;
   account: string | null;
+  seller?: string;
 }
 
 const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
   ipfsHash,
   metadata,
   onClose,
-  account
+  account,
+  seller
 }) => {
   const [showListingModal, setShowListingModal] = useState(false);
   const [showAuctionModal, setShowAuctionModal] = useState(false);
@@ -162,7 +160,6 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
   };
 
 
-
   return (
     <>
       <div 
@@ -190,12 +187,8 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
               <div className="metadata-section">
                 <h3>Details</h3>
                 <div className="metadata-grid">
-                  <div className="metadata-item">
-                    <label>Owner</label>
-                    <span>{account ? formatAddress(account) : 'Unknown'}</span>
-                  </div>
-                  <div className="metadata-item">
-                    <label>HP</label>
+                <div className="metadata-item">
+                  <label>HP</label>
                     <span>{pokemonStats?.hp || 'Loading...'}</span>
                   </div>
                   <div className="metadata-item">
@@ -213,6 +206,18 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
                   <div className="metadata-item">
                     <label>Special</label>
                     <span>{pokemonStats?.special || 'Loading...'}</span>
+                  </div>
+                  <div className="metadata-item">
+                    <label>Token ID</label>
+                    <span>{tokenId ? `#${tokenId}` : ipfsHash.slice(0, 8)}</span>
+                  </div>
+                  <div className="metadata-item">
+                    <label>Owner</label>
+                    <span>{account ? formatAddress(account) : 'Unknown'}</span>
+                  </div>
+                  <div className="metadata-item">
+                    <label>Contract</label>
+                    <span>{formatAddress(CONTRACT_ADDRESSES.NFT_CONTRACT)}</span>
                   </div>
                 </div>
               </div>
