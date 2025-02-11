@@ -344,4 +344,78 @@
 
 .product-details-scroll-container::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+.list-button {
+  padding: 12px 24px;
+  height: 48px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: white;
+  color: #1e3a8a;
+  border: 2px solid #1e3a8a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.list-button:hover:not(:disabled) {
+  background: #1e3a8a;
+  color: white;
+}
+
+.list-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
+}
+
+.auction-button {
+  padding: 12px 24px;
+  height: 48px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: white;
+  color: #1e3a8a;
+  border: 2px solid #1e3a8a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.auction-button:hover:not(:disabled) {
+  background: #1e3a8a;
+  color: white;
+}
+
+.auction-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
+}
+
+.auction-button i {
+  color: #1e3a8a;
+}
+
+.auction-button:hover:not(:disabled) i {
+  color: white;
 } 
