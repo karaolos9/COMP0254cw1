@@ -1048,6 +1048,7 @@ button.white {
 /* Wallet button styles */
 .wallet-button {
   padding: 8px 16px;
+  height: 48px;
   border-radius: 20px;
   display: flex;
   align-items: center;

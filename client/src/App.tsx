@@ -813,10 +813,9 @@ function AppContent() {
           />
           <h1>Pokémon NFT Trading Site</h1>
         </div>
-
+        <SearchBar onSearch={handleSearch} />
       <div>
           <ul id="navbar">
-            <SearchBar onSearch={handleSearch} />
             <button 
               className="cart-button"
               onClick={() => setIsCartOpen(!isCartOpen)}
