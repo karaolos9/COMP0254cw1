@@ -1,6 +1,16 @@
 .search-section {
   position: relative;
-  margin-right: 20px;
+  margin-right: 140px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-section i {
+  color: #1e3a8a;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
 }
 
 .search-container {
@@ -11,11 +21,20 @@
   border-radius: 20px;        /* Round corners */
   overflow: hidden;
   transition: all 0.3s ease;
+  padding: 0 15px;
 }
 
 .search-container:focus-within {
   box-shadow: 0 0 5px rgba(37, 99, 235, 0.3);
   border-color: #2563eb;
+}
+
+.search-container i {
+  color: #1e3a8a;
+  font-size: 16px;
+  height: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .search-input {

@@ -16,6 +16,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   return (
     <div className="search-section">
       <form className="search-container" onSubmit={handleSubmit}>
+        <i className="fas fa-search"></i>
         <input
           type="text"
           placeholder="Search Pokemon..."
@@ -23,9 +24,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
           onChange={(e) => setSearchTerm(e.target.value)}
           className="search-input"
         />
-        <button type="submit" className="search-button">
-          <i className="fas fa-magnifying-glass"></i>
-        </button>
       </form>
     </div>
   );

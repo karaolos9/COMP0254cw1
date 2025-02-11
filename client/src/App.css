@@ -1573,6 +1573,19 @@ button.white {
   background: #1e3a8a;
   color: white;
   border-radius: 0 20px 20px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  min-width: 45px;
+}
+
+.search-button i {
+  color: white;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cart-button {
@@ -1682,17 +1695,6 @@ button i {
   min-width: 40px;
   height: 40px;
   justify-content: center;
-}
-
-/* Search button specific */
-.search-button {
-  background: #1e3a8a;
-  color: white;
-  border-radius: 0 20px 20px 0;
-}
-
-.search-button:hover {
-  background: #2563eb;
 }
 
 .name-price {
