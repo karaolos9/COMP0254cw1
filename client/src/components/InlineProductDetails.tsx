@@ -297,7 +297,7 @@ export default function InlineProductDetails({
         errorMessage += 'Transaction was rejected';
       } else {
         // If we can't identify the specific error, provide a more general message
-        errorMessage += 'Failed to place bid. Please ensure you meet the minimum bid requirements';
+        errorMessage += 'Failed to place bid. Please ensure your bid is at least 5% higher than the current bid';
       }
       
       setToastMessage(errorMessage);
@@ -493,7 +493,7 @@ export default function InlineProductDetails({
                       </>
                     ) : (
                       <>
-                        {isListed && (
+                        {isListed && !isAuction && (
                           <>
                             <button 
                               className={`cart-button ${cartItems.some(item => item.id === ipfsHash) ? 'in-cart' : ''}`}

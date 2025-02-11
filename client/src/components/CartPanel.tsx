@@ -17,10 +17,21 @@ interface SuccessPopupProps {
 }
 
 const SuccessPopup = ({ onClose }: SuccessPopupProps) => (
-  <div className="success-popup">
-    <h3>NFT Purchased Successfully!</h3>
-    <p>Your NFT has been added to your collection.</p>
-    <button onClick={onClose} className="success-ok-button">OK</button>
+  <div className="success-popup-overlay" onClick={onClose}>
+    <div className="success-popup" onClick={e => e.stopPropagation()}>
+      <h3>NFT Purchased Successfully!</h3>
+      <p>Your NFT has been added to your collection.</p>
+      <button onClick={onClose} className="success-ok-button">OK</button>
+    </div>
+  </div>
+);
+
+const LoadingOverlay = () => (
+  <div className="loading-overlay">
+    <div className="loading-content">
+      <div className="loading-spinner" />
+      <p>Processing your purchase...</p>
+    </div>
   </div>
 );
 
@@ -34,8 +45,23 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
   const total = cartItems.reduce((sum, item) => sum + (item.price || 0), 0);
   const itemCount = cartItems.length;
 
+  // Check if MetaMask is available
+  const isMetaMaskAvailable = typeof window !== 'undefined' && !!window.ethereum;
+
   const handlePurchase = async () => {
-    if (!window.ethereum || cartItems.length === 0) return;
+    if (!isMetaMaskAvailable) {
+      setToastMessage('Please install MetaMask to purchase NFTs');
+      setToastType('error');
+      setShowToast(true);
+      return;
+    }
+    
+    if (cartItems.length === 0) {
+      setToastMessage('Your cart is empty');
+      setToastType('error');
+      setShowToast(true);
+      return;
+    }
 
     try {
       setIsProcessing(true);
@@ -182,10 +208,11 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
       let errorMessage = '';
       if (error.code === 'INSUFFICIENT_FUNDS') {
         errorMessage = 'Insufficient funds to complete the purchase';
-      } else if (error.code === 'ACTION_REJECTED') {
-        errorMessage = 'Transaction was rejected by user';
-      } else if (error.message.includes("user rejected transaction")) {
-        errorMessage = 'Transaction was rejected by user';
+      } else if (error.code === 'ACTION_REJECTED' || 
+                 error.message.includes("user rejected") || 
+                 error.message.includes("User rejected") || 
+                 error.message.includes("User denied")) {
+        errorMessage = 'Transaction was cancelled by user';
       } else {
         errorMessage = error.message || 'Failed to complete purchase';
       }
@@ -201,84 +228,86 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
   const handleSuccessOk = () => {
     setShowSuccessPopup(false);
     onClose();
-    // Refresh the current page instead of redirecting
     window.location.reload();
   };
 
   return (
     <>
-      {isOpen && <div className="cart-overlay" onClick={onClose} />}
-      <div className={`cart-panel ${isOpen ? 'open' : ''}`}>
-        <div className="cart-header">
-          <h2>Shopping Cart</h2>
-          <button className="close-button" onClick={onClose}>
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
+      {isProcessing && <LoadingOverlay />}
+      {showSuccessPopup && <SuccessPopup onClose={handleSuccessOk} />}
+      {isOpen && (
+        <>
+          <div className="cart-overlay" onClick={onClose} />
+          <div className={`cart-panel ${isOpen ? 'open' : ''}`}>
+            <div className="cart-header">
+              <h2>Shopping Cart</h2>
+              <button className="close-button" onClick={onClose}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
 
-        <div className="cart-items">
-          {showSuccessPopup ? (
-            <SuccessPopup onClose={handleSuccessOk} />
-          ) : (
-            cartItems.length === 0 ? (
-              <div className="empty-cart">
-                <i className="fas fa-shopping-cart"></i>
-                <p>Your cart is empty</p>
-              </div>
-            ) : (
-              <>
-                <div className="cart-subheader">
-                  <span className="item-count">
-                    {itemCount} {itemCount === 1 ? 'Item' : 'Items'}
-                  </span>
-                  <button 
-                    className="clear-cart-button"
-                    onClick={clearCart}
-                  >
-                    Clear All
-                  </button>
+            <div className="cart-items">
+              {cartItems.length === 0 ? (
+                <div className="empty-cart">
+                  <i className="fas fa-shopping-cart"></i>
+                  <p>Your cart is empty</p>
                 </div>
-                {cartItems.map(item => (
-                  <div key={item.id} className="cart-item">
-                    <div className="item-image">
-                      <PinataImage 
-                        hash={item.id}
-                        alt={item.name}
-                      />
-                    </div>
-                    <div className="item-details">
-                      <h3>{item.name}</h3>
-                      <p>{item.price || 'Not Listed'} {item.price ? 'ETH' : ''}</p>
-                    </div>
+              ) : (
+                <>
+                  <div className="cart-subheader">
+                    <span className="item-count">
+                      {itemCount} {itemCount === 1 ? 'Item' : 'Items'}
+                    </span>
                     <button 
-                      className="remove-item"
-                      onClick={() => removeFromCart(item.id)}
+                      className="clear-cart-button"
+                      onClick={clearCart}
                     >
-                      <i className="fas fa-times"></i>
+                      Clear All
                     </button>
                   </div>
-                ))}
-              </>
-            )
-          )}
-        </div>
-
-        {cartItems.length > 0 && !showSuccessPopup && (
-          <div className="cart-footer">
-            <div className="cart-total">
-              <span>Total:</span>
-              <span>{total.toFixed(4)} ETH</span>
+                  {cartItems.map(item => (
+                    <div key={item.id} className="cart-item">
+                      <div className="item-image">
+                        <PinataImage 
+                          hash={item.id}
+                          alt={item.name}
+                        />
+                      </div>
+                      <div className="item-details">
+                        <h3>{item.name}</h3>
+                        <p>{item.price || 'Not Listed'} {item.price ? 'ETH' : ''}</p>
+                      </div>
+                      <button 
+                        className="remove-item"
+                        onClick={() => removeFromCart(item.id)}
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
-            <button 
-              className="checkout-button"
-              onClick={handlePurchase}
-              disabled={isProcessing}
-            >
-              {isProcessing ? 'Processing...' : 'Purchase NFTs'}
-            </button>
+
+            {cartItems.length > 0 && !showSuccessPopup && (
+              <div className="cart-footer">
+                <div className="cart-total">
+                  <span>Total:</span>
+                  <span>{total.toFixed(4)} ETH</span>
+                </div>
+                <button 
+                  className="checkout-button"
+                  onClick={handlePurchase}
+                  disabled={isProcessing || !isMetaMaskAvailable}
+                >
+                  {!isMetaMaskAvailable ? 'Install MetaMask' : 
+                   isProcessing ? 'Processing...' : 'Purchase NFTs'}
+                </button>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
       <Toast 
         message={toastMessage}
         isVisible={showToast}

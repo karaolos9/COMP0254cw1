@@ -1621,10 +1621,19 @@ button.white {
 }
 
 /* Secondary buttons */
-.cart-button,
+.cart-button {
+  width: 48px;
+  height: 48px;
+  background: white;
+  color: #1e3a8a;
+  border: 2px solid #1e3a8a;
+}
+
+
 .cart-button-card,
 .wallet-info-button,
 .profile-btn {
+  height: 48px;
   background: white;
   color: #1e3a8a;
   border: 2px solid #1e3a8a;

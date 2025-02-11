@@ -1070,13 +1070,15 @@ function AppContent() {
                                   : ""
                             }
                           >
-                            <button
-                              className={`cart-button ${cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) ? 'in-cart' : ''}`}
-                              onClick={(e) => handleCartClick(e, item)}
-                              disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
-                            >
-                              <i className="fas fa-shopping-cart"></i>
-                            </button>
+                            {!item.isAuction && (
+                              <button
+                                className={`cart-button ${cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) ? 'in-cart' : ''}`}
+                                onClick={(e) => handleCartClick(e, item)}
+                                disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
+                              >
+                                <i className="fas fa-shopping-cart"></i>
+                              </button>)
+                            }
                             {item.isAuction ? (
                               <button 
                                 className="auction-button"

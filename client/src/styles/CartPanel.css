@@ -210,20 +210,37 @@
 }
 
 /* Success Popup Styles */
-.success-popup {
+.success-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  z-index: 1300;
+  cursor: pointer;
+}
+
+.success-popup {
+  background: white;
   padding: 2rem;
+  border-radius: 10px;
   text-align: center;
-  height: 100%;
+  width: 90%;
+  max-width: 400px;
+  max-height: 300px;
+  justify-content: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  animation: popIn 0.3s ease-out forwards;
 }
 
 .success-popup h3 {
   color: #10B981;
-  font-size: 1.5rem;
   margin-bottom: 1rem;
+  font-size: 1.5rem;
 }
 
 .success-popup p {
@@ -234,64 +251,90 @@
 .success-ok-button {
   background-color: #10B981;
   color: white;
+  padding: 12px 30px;
   border: none;
   border-radius: 6px;
-  padding: 12px 24px;
+  font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.2s;
 }
 
 .success-ok-button:hover {
   background-color: #059669;
 }
 
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Disabled state for checkout button */
 .checkout-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
-  background-color: #9CA3AF;
+  background-color: #4b5563;
 }
 
 .checkout-button:disabled:hover {
-  background-color: #9CA3AF;
+  background-color: #4b5563;
 }
 
+/* Loading Overlay */
 .loading-overlay {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1300;
+  cursor: not-allowed;
+  animation: fadeIn 0.3s ease;
+  pointer-events: all;
+}
+
+.loading-content {
+  background: white;
   width: 500px;
   height: 200px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
-}
-
-.processing-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 999;
+  padding: 20px;
+  animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: auto;
 }
 
 .loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid #f3f3f3;
-  border-top: 5px solid #1e3a8a;
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #1e3a8a;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+}
+
+.loading-overlay p {
+  color: #1e3a8a;
+  font-size: 1.1rem;
+  font-weight: 500;
+  text-align: center;
+  margin: 0;
+  padding: 0 20px;
 }
 
 @keyframes spin {
@@ -299,9 +342,18 @@
   100% { transform: rotate(360deg); }
 }
 
-.loading-overlay p {
-  color: #1e3a8a;
-  font-size: 16px;
-  font-weight: 500;
-  margin: 0;
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 } 

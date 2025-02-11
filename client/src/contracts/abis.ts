@@ -560,5 +560,18 @@ export const TRADING_ABI = [
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "buyCard",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
   }
 ];
