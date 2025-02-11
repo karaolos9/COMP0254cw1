@@ -7,6 +7,23 @@ import { Toast } from './Toast';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESSES, CONTRACT_ABIS } from '../config';
 
+  // Add Pokemon type mapping
+  const pokemonTypes = [
+    'NORMAL', 'FIRE', 'WATER', 'ELECTRIC', 'GRASS', 'ICE',
+    'FIGHTING', 'POISON', 'GROUND', 'FLYING', 'PSYCHIC', 'BUG',
+    'ROCK', 'GHOST', 'DRAGON', 'DARK', 'STEEL', 'FAIRY', 'LIGHT'
+  ];
+
+// Add interface for Pokemon stats
+interface PokemonStats {
+  hp: number;
+  attack: number;
+  defense: number;
+  speed: number;
+  special: number;
+  pokemonType: number;
+}
+
 interface ProfileCardDetailsProps {
   ipfsHash: string;
   metadata?: {
@@ -39,6 +56,8 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
   const [tokenId, setTokenId] = useState<number | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelSuccessPopup, setShowCancelSuccessPopup] = useState(false);
+  // Add new state for Pokemon stats
+  const [pokemonStats, setPokemonStats] = useState<PokemonStats | null>(null);
 
   useEffect(() => {
     const checkListingStatus = async () => {
@@ -63,6 +82,21 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
           const cleanUri = uri.replace('ipfs://', '');
           if (cleanUri === ipfsHash) {
             setTokenId(i);
+            
+            // Fetch Pokemon stats for this token
+            try {
+              const stats = await nftContract.getPokemonStats(i);
+              setPokemonStats({
+                hp: Number(stats.hp),
+                attack: Number(stats.attack),
+                defense: Number(stats.defense),
+                speed: Number(stats.speed),
+                special: Number(stats.special),
+                pokemonType: Number(stats.pokemonType)
+              });
+            } catch (error) {
+              console.error('Error fetching Pokemon stats:', error);
+            }
             
             // Check if this token is listed
             const tradingContract = new ethers.Contract(
@@ -127,6 +161,8 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
     window.location.reload();
   };
 
+
+
   return (
     <>
       <div 
@@ -159,24 +195,24 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
                     <span>{account ? formatAddress(account) : 'Unknown'}</span>
                   </div>
                   <div className="metadata-item">
-                    <label>Rarity</label>
-                    <span>{metadata?.keyvalues?.Rarity || 'Common'}</span>
+                    <label>HP</label>
+                    <span>{pokemonStats?.hp || 'Loading...'}</span>
                   </div>
                   <div className="metadata-item">
-                    <label>Generation</label>
-                    <span>{metadata?.keyvalues?.Generation || 'Unknown'}</span>
+                    <label>Attack</label>
+                    <span>{pokemonStats?.attack || 'Loading...'}</span>
                   </div>
                   <div className="metadata-item">
-                    <label>Move 1</label>
-                    <span>{metadata?.keyvalues?.Move1 || '-'}</span>
+                    <label>Defense</label>
+                    <span>{pokemonStats?.defense || 'Loading...'}</span>
                   </div>
                   <div className="metadata-item">
-                    <label>Move 2</label>
-                    <span>{metadata?.keyvalues?.Move2 || '-'}</span>
+                    <label>Speed</label>
+                    <span>{pokemonStats?.speed || 'Loading...'}</span>
                   </div>
                   <div className="metadata-item">
-                    <label>Token ID</label>
-                    <span>{tokenId ? `#${tokenId}` : ipfsHash.slice(0, 8)}</span>
+                    <label>Special</label>
+                    <span>{pokemonStats?.special || 'Loading...'}</span>
                   </div>
                 </div>
               </div>
