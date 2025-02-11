@@ -135,7 +135,7 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
         signer
       );
 
-      const tx = await tradingContract.cancelListing(tokenId);
+      const tx = await tradingContract.cancelFixedPriceListing(tokenId);
       await tx.wait();
 
       setToastMessage('Listing cancelled successfully');
@@ -298,6 +298,12 @@ const ProfileCardDetails: React.FC<ProfileCardDetailsProps> = ({
               setToastType={setToastType}
               setShowToast={setShowToast}
             />
+          )}
+          {isCancelling && (
+            <div className="loading-overlay">
+              <div className="loading-spinner"></div>
+              <p>Cancelling listing...</p>
+            </div>
           )}
         </div>
       </div>

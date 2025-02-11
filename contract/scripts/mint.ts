@@ -1,26 +1,133 @@
 import { ethers } from "hardhat";
 import axios from "axios";
 import { PINATA_CONFIG } from "../config/pinata";
+import { pokemonList, PokemonMintData } from "../data/pokemon-data";
 
 // Replace with your actual deployed contract address
 const NFT_CONTRACT_ADDRESS = "0x9550C786877ECdfbEb4dE17b9644B5b47B1BF1aF";
 
-async function getPinataMetadata(hash: string) {
+// Your wallet address that will receive the minted NFTs
+const RECIPIENT_ADDRESS = "0x0E0a1b75212295c1d975C9fcFF27AFEd74579666";
+
+// Keep track of minted IPFS hashes
+const mintedHashes = new Set<string>();
+
+async function isAlreadyMinted(pokemon: PokemonMintData, pokemonNFT: any): Promise<boolean> {
     try {
-        const response = await axios.get(`${PINATA_CONFIG.GATEWAY}/${hash}`, {
+        const totalTokens = await pokemonNFT.cardIdCounter();
+        
+        // Check each existing token
+        for (let tokenId = 1; tokenId <= totalTokens; tokenId++) {
+            try {
+                const uri = await pokemonNFT.tokenURI(tokenId);
+                const cleanUri = uri.replace('ipfs://', '');
+                
+                if (cleanUri === pokemon.ipfsHash) {
+                    console.log(`\n⚠️ Pokemon with IPFS hash ${pokemon.ipfsHash} already minted as Token ID: ${tokenId}`);
+                    return true;
+                }
+            } catch (error) {
+                // Skip if token doesn't exist or other error
+                continue;
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error("Error checking minted status:", error);
+        return false;
+    }
+}
+
+async function verifyPinataMetadata(pokemon: PokemonMintData) {
+    try {
+        const response = await axios.get(`${PINATA_CONFIG.GATEWAY}/${pokemon.ipfsHash}`, {
             headers: {
                 'Authorization': `Bearer ${PINATA_CONFIG.JWT}`
             }
         });
 
-        console.log("Metadata retrieved:", response.data);
-        return response.data;
+        // Only log relevant metadata information
+        const metadata = response.data;
+        console.log(`\nMetadata verified for ${pokemon.name}:`);
+        console.log('Name:', metadata.name);
+        console.log('Description:', metadata.description);
+        console.log('Type:', metadata.keyvalues?.Type);
+        return true;
     } catch (error) {
-        console.error("Error fetching from Pinata:", error);
+        console.error(`\nError verifying metadata for ${pokemon.name}`);
         if (axios.isAxiosError(error)) {
-            console.error("Response:", error.response?.data);
+            console.error("Status:", error.response?.status);
+            console.error("Message:", error.response?.data?.message || error.message);
         }
-        throw error;
+        return false;
+    }
+}
+
+async function mintPokemon(pokemon: PokemonMintData, pokemonNFT: any) {
+    // Check if already minted in current session
+    if (mintedHashes.has(pokemon.ipfsHash)) {
+        console.log(`\n⚠️ Skipping ${pokemon.name} - Already minted in this session`);
+        return false;
+    }
+
+    // Check if already minted on blockchain
+    if (await isAlreadyMinted(pokemon, pokemonNFT)) {
+        console.log(`Skipping mint operation.`);
+        return false;
+    }
+
+    console.log(`\n🎮 Minting ${pokemon.name}...`);
+    console.log(`📦 IPFS Hash: ${pokemon.ipfsHash}`);
+    console.log("📊 Stats:");
+    console.log("  HP:", pokemon.stats.hp);
+    console.log("  Attack:", pokemon.stats.attack);
+    console.log("  Defense:", pokemon.stats.defense);
+    console.log("  Speed:", pokemon.stats.speed);
+    console.log("  Special:", pokemon.stats.special);
+    console.log("  Type:", pokemon.stats.pokemonType);
+
+    try {
+        // Create IPFS URI
+        const uri = `ipfs://${pokemon.ipfsHash}`;
+
+        // Verify metadata exists on Pinata
+        const isMetadataValid = await verifyPinataMetadata(pokemon);
+        if (!isMetadataValid) {
+            throw new Error(`Invalid metadata for ${pokemon.name}`);
+        }
+
+        console.log("\n💫 Sending transaction...");
+        // Mint the NFT
+        const tx = await pokemonNFT.mintCard(
+            RECIPIENT_ADDRESS,
+            uri,
+            pokemon.stats.hp,
+            pokemon.stats.attack,
+            pokemon.stats.defense,
+            pokemon.stats.speed,
+            pokemon.stats.special,
+            pokemon.stats.pokemonType
+        );
+        
+        console.log("📝 Transaction hash:", tx.hash);
+        console.log("⏳ Waiting for confirmation...");
+        await tx.wait();
+
+        // Get the minted token ID
+        const tokenId = await pokemonNFT.cardIdCounter();
+        
+        console.log("\n✅ Pokemon Minted Successfully!");
+        console.log("🎯 Token ID:", tokenId.toString());
+        console.log(`🔍 View on Sepolia Etherscan: https://sepolia.etherscan.io/tx/${tx.hash}`);
+        console.log(`🖼️ View Metadata: ${PINATA_CONFIG.GATEWAY}/${pokemon.ipfsHash}`);
+
+        // Add to minted hashes set
+        mintedHashes.add(pokemon.ipfsHash);
+
+        return true;
+    } catch (error) {
+        console.error(`\n❌ Error minting ${pokemon.name}:`, error);
+        return false;
     }
 }
 
@@ -31,76 +138,32 @@ async function main() {
         NFT_CONTRACT_ADDRESS
     );
     
-    // Your wallet address
-    const recipient = "0x0E0a1b75212295c1d975C9fcFF27AFEd74579666";
-    
-    // IPFS hash of your Pokemon metadata (replace with your actual hash)
-    // 0: NORMAL
-    // 1: FIRE
-    // 2: WATER
-    // 3: ELECTRIC
-    // 4: GRASS
-    // 5: ICE
-    // 6: FIGHTING
-    // 7: POISON
-    // 8: GROUND
-    // 9: FLYING
-    // 10: PSYCHIC
-    // 11: BUG
-    // 12: ROCK
-    // 13: GHOST
-    // 14: DRAGON
-    // 15: DARK
-    // 16: STEEL
-    // 17: FAIRY
-    // 18: LIGHT
-    // IPFS hash of your Pokemon metadata
-    const ipfsHash = "bafybeiace3j7ff56dwjbwbr5yyox4hvjviue56iigic445gjfvnn3v4g5a";
-    const uri = `ipfs://${ipfsHash}`;
+    console.log(`\n🚀 Starting batch mint process for ${pokemonList.length} Pokemon...`);
+    console.log("📫 Recipient address:", RECIPIENT_ADDRESS);
 
-    // Pokemon stats (customized for Jungle Pikachiu)
-    const stats = {
-        hp: 75,        // 0-100 (Slightly sturdy for jungle survival)
-        attack: 70,    // 0-100 (Decent physical strikes like vine whips)
-        defense: 65,   // 0-100 (Can dodge but not the tankiest)
-        speed: 90,     // 0-100 (Fast and nimble like a jungle creature)
-        special: 85,   // 0-100 (Strong electric-like plant attacks)
-        pokemonType: 4 // 0-18 (4 represents GRASS type)
-    };
-    
-    console.log(`\nMinting Pokemon NFT...`);
-    console.log(`Recipient: ${recipient}`);
-    console.log(`Metadata URI: ${uri}`);
-    console.log("Stats:", stats);
-    
-    try {
-        const tx = await pokemonNFT.mintCard(
-            recipient,
-            uri,
-            stats.hp,
-            stats.attack,
-            stats.defense,
-            stats.speed,
-            stats.special,
-            stats.pokemonType
-        );
+    let successCount = 0;
+    let failureCount = 0;
+    let skippedCount = 0;
+
+    // Mint each Pokemon in the list
+    for (const pokemon of pokemonList) {
+        const success = await mintPokemon(pokemon, pokemonNFT);
+        if (success) {
+            successCount++;
+        } else if (await isAlreadyMinted(pokemon, pokemonNFT)) {
+            skippedCount++;
+        } else {
+            failureCount++;
+        }
         
-        console.log("Transaction hash:", tx.hash);
-        console.log("Waiting for transaction confirmation...");
-        await tx.wait();
-
-        // Get the minted token ID
-        const tokenId = await pokemonNFT.cardIdCounter();
-        
-        console.log("\n✅ Pokemon Minted Successfully!");
-        console.log("Token ID:", tokenId.toString());
-        console.log(`View on Sepolia Etherscan: https://sepolia.etherscan.io/tx/${tx.hash}`);
-        console.log(`View Metadata: ${PINATA_CONFIG.GATEWAY}/${ipfsHash}`);
-
-    } catch (error) {
-        console.error("\n❌ Error minting Pokemon NFT:", error);
-        throw error;
+        // Add a small delay between mints to prevent rate limiting
+        await new Promise(resolve => setTimeout(resolve, 2000));
     }
+
+    console.log("\n📊 Batch Minting Summary:");
+    console.log(`✅ Successfully minted: ${successCount}`);
+    console.log(`⏭️ Skipped (already minted): ${skippedCount}`);
+    console.log(`❌ Failed to mint: ${failureCount}`);
 }
 
 main()

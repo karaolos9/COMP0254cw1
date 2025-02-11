@@ -91,7 +91,7 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
 
         // Cancel the current listing before starting auction
         console.log('Cancelling current listing...');
-        const cancelTx = await tradingContract.cancelListing(tokenId);
+        const cancelTx = await tradingContract.cancelFixedPriceListing(tokenId);
         await cancelTx.wait();
         console.log('Listing cancelled successfully');
       }

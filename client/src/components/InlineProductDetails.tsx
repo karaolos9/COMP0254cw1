@@ -73,6 +73,7 @@ export default function InlineProductDetails({
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelSuccessPopup, setShowCancelSuccessPopup] = useState(false);
   const [pokemonStats, setPokemonStats] = useState<PokemonStats | null>(null);
+  const [showBidOverlay, setShowBidOverlay] = useState(false);
   
   useEffect(() => {
     const checkListingStatus = async () => {
@@ -184,7 +185,7 @@ export default function InlineProductDetails({
         signer
       );
 
-      const tx = await tradingContract.cancelListing(tokenId);
+      const tx = await tradingContract.cancelFixedPriceListing(tokenId);
       await tx.wait();
 
       setToastMessage('Listing cancelled successfully');
@@ -241,6 +242,7 @@ export default function InlineProductDetails({
 
     try {
       setIsPlacingBid(true);
+      setShowBidOverlay(true);
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
@@ -303,6 +305,7 @@ export default function InlineProductDetails({
       setShowToast(true);
     } finally {
       setIsPlacingBid(false);
+      setShowBidOverlay(false);
     }
   };
 
@@ -393,6 +396,12 @@ export default function InlineProductDetails({
         style={{ cursor: isPlacingBid || isFinalizingAuction || isCancelling ? 'not-allowed' : 'pointer' }}
       >
         <div className="product-details-content" onClick={e => e.stopPropagation()}>
+          {isCancelling && (
+            <div className="loading-overlay">
+              <div className="loading-spinner"></div>
+              <p>Cancelling listing...</p>
+            </div>
+          )}
           <button className="close-button" onClick={onClose}>×</button>
           
           <div className="product-details-scroll-container">
@@ -639,7 +648,14 @@ export default function InlineProductDetails({
           </div>
         </div>
       )}
-      {(isPlacingBid || isFinalizingAuction || isCancelling) && <div className="processing-overlay" />}
+      {(isPlacingBid || isFinalizingAuction || isCancelling) && (
+        <div className="bid-processing-overlay">
+          <div className="processing-content">
+            <div className="listing-spinner" />
+            <p>{isPlacingBid ? 'Processing your bid...' : isFinalizingAuction ? 'Finalizing auction...' : 'Cancelling listing...'}</p>
+          </div>
+        </div>
+      )}
     </>
   );
 } 

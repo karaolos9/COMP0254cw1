@@ -138,6 +138,7 @@
 .cancel-listing-button,
 .view-auction-button {
   padding: 12px 24px;
+  height: 48px;
   border-radius: 8px;
   font-weight: 600;
   font-size: 14px;
@@ -153,6 +154,7 @@
   justify-content: center;
   gap: 8px;
   min-width: 160px;
+  box-sizing: border-box;
 }
 
 /* Icon styling */
@@ -227,6 +229,7 @@
   gap: 12px;
   margin-top: 24px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 /* Place bid section specific styles */
@@ -689,4 +692,52 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Bid Processing Overlay */
+.bid-processing-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  z-index: 1200;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: not-allowed;
+  animation: fadeIn 0.3s ease;
+}
+
+.bid-processing-overlay .processing-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 500px;
+  height: 200px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  animation: zoomIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bid-processing-overlay .listing-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #1e3a8a;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.bid-processing-overlay p {
+  color: #1e3a8a;
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0;
 } 
