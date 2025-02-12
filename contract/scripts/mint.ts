@@ -3,11 +3,11 @@ import axios from "axios";
 import { PINATA_CONFIG } from "../config/pinata";
 import { pokemonList, PokemonMintData } from "../data/pokemon-data";
 
-// Replace with your actual deployed contract address
-const NFT_CONTRACT_ADDRESS = "0x9550C786877ECdfbEb4dE17b9644B5b47B1BF1aF";
+// Contract address from local Hardhat deployment (first deployed contract)
+const NFT_CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
-// Your wallet address that will receive the minted NFTs
-const RECIPIENT_ADDRESS = "0x0E0a1b75212295c1d975C9fcFF27AFEd74579666";
+// Default Hardhat account[0] address that has the minting rights
+const RECIPIENT_ADDRESS = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266";
 
 // Keep track of minted IPFS hashes
 const mintedHashes = new Set<string>();
@@ -118,7 +118,7 @@ async function mintPokemon(pokemon: PokemonMintData, pokemonNFT: any) {
         
         console.log("\n✅ Pokemon Minted Successfully!");
         console.log("🎯 Token ID:", tokenId.toString());
-        console.log(`🔍 View on Sepolia Etherscan: https://sepolia.etherscan.io/tx/${tx.hash}`);
+        console.log(`🔍 View on local network: http://localhost:8545`);
         console.log(`🖼️ View Metadata: ${PINATA_CONFIG.GATEWAY}/${pokemon.ipfsHash}`);
 
         // Add to minted hashes set
@@ -139,7 +139,7 @@ async function main() {
     );
     
     console.log(`\n🚀 Starting batch mint process for ${pokemonList.length} Pokemon...`);
-    console.log("📫 Recipient address:", RECIPIENT_ADDRESS);
+    console.log("📫 Recipient address (Hardhat account[0]):", RECIPIENT_ADDRESS);
 
     let successCount = 0;
     let failureCount = 0;
@@ -156,8 +156,8 @@ async function main() {
             failureCount++;
         }
         
-        // Add a small delay between mints to prevent rate limiting
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Add a small delay between mints
+        await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     console.log("\n📊 Batch Minting Summary:");

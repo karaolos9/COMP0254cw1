@@ -1,34 +1,34 @@
 import { NFT_ABI, TRADING_ABI } from './contracts/abis';
 
 export const CONTRACT_ADDRESSES = {
-  NFT_CONTRACT: "0x9550C786877ECdfbEb4dE17b9644B5b47B1BF1aF",
-  TRADING_CONTRACT: "0x6a8e1C4558F395E00A2dc0439A097B293355F546"
+  NFT_CONTRACT: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+  TRADING_CONTRACT: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
 };
 
 // Pinata configuration
 export const PINATA_BASE_URL = 'https://api.pinata.cloud';
 
-// Network configuration for Sepolia
+// Network configuration for local Hardhat network
 export const NETWORK_CONFIG = {
-  chainId: "0xaa36a7", // Sepolia chain ID in hex
-  chainName: "Sepolia",
+  chainId: "0x7A69", // 31337 in hex
+  chainName: "Hardhat Local",
   nativeCurrency: {
-    name: "Sepolia Ether",
+    name: "Ethereum",
     symbol: "ETH",
     decimals: 18
   },
-  rpcUrls: ["https://eth-sepolia.g.alchemy.com/v2/8XyigRnoVSZULHhAxlOfXLfcEcNUZ36P"],
-  blockExplorerUrls: ["https://sepolia.etherscan.io"]
+  rpcUrls: ["http://127.0.0.1:8545"],
+  blockExplorerUrls: []
 };
 
-// Contract ABIs - you'll need to import these from your contract artifacts
+// Contract ABIs
 export const CONTRACT_ABIS = {
   NFT_CONTRACT: NFT_ABI,
   TRADING_CONTRACT: TRADING_ABI
 };
 
-// Optional: Add environment check
+// Environment check
 export const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
 
-// Optional: Add useful constants
-export const SUPPORTED_CHAIN_ID = 11155111; // Sepolia chain ID in decimal 
+// Chain ID in decimal for easy comparison
+export const SUPPORTED_CHAIN_ID = 31337; // Hardhat's chain ID 

@@ -11,7 +11,7 @@ import { PinataImage } from './components/PinataImage';
 import { useCart } from './context/CartContext';
 import { Toast } from './components/Toast';
 import { SearchBar } from './components/SearchBar';
-import { CONTRACT_ABIS } from './config';
+import { CONTRACT_ABIS, CONTRACT_ADDRESSES, NETWORK_CONFIG } from './config';
 import InlineProductDetails from './components/InlineProductDetails';
 import type { PinataItem as ImportedPinataItem } from './types';
 
@@ -36,9 +36,6 @@ interface ToastProps {
   type: 'success' | 'error';
 }
 
-// Add these near the top of your AppContent component
-const NFT_CONTRACT_ADDRESS = "0x9550C786877ECdfbEb4dE17b9644B5b47B1BF1aF";
-const TRADING_CONTRACT_ADDRESS = "0x6a8e1C4558F395E00A2dc0439A097B293355F546";
 
 // Add these new interfaces
 interface FilterState {
@@ -80,19 +77,6 @@ interface NFTListing {
   seller: string;
   isAuction: boolean;
 }
-
-// Add network configuration
-const NETWORK_CONFIG = {
-  chainId: '0xaa36a7', // Sepolia
-  chainName: 'Sepolia',
-  nativeCurrency: {
-    name: 'Sepolia ETH',
-    symbol: 'ETH',
-    decimals: 18
-  },
-  rpcUrls: ['https://eth-sepolia.g.alchemy.com/v2/8XyigRnoVSZULHhAxlOfXLfcEcNUZ36P'],
-  blockExplorerUrls: ['https://sepolia.etherscan.io']
-};
 
 // Update Window interface to use SDKProvider
 declare global {
@@ -466,7 +450,7 @@ function AppContent() {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const nftContract = new ethers.Contract(
-        NFT_CONTRACT_ADDRESS,
+        CONTRACT_ADDRESSES.NFT_CONTRACT,
         CONTRACT_ABIS.NFT_CONTRACT,
         provider
       );
@@ -744,7 +728,7 @@ function AppContent() {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const tradingContract = new ethers.Contract(
-        TRADING_CONTRACT_ADDRESS,
+        CONTRACT_ADDRESSES.TRADING_CONTRACT,
         CONTRACT_ABIS.TRADING_CONTRACT,
         provider
       );
@@ -755,7 +739,7 @@ function AppContent() {
       
       // Get NFT contract for tokenURI lookup
       const nftContract = new ethers.Contract(
-        NFT_CONTRACT_ADDRESS,
+        CONTRACT_ADDRESSES.NFT_CONTRACT,
         CONTRACT_ABIS.NFT_CONTRACT,
         provider
       );
@@ -803,7 +787,7 @@ function AppContent() {
       const signer = await provider.getSigner();
       
       const tradingContract = new ethers.Contract(
-        TRADING_CONTRACT_ADDRESS,
+        CONTRACT_ADDRESSES.TRADING_CONTRACT,
         CONTRACT_ABIS.TRADING_CONTRACT,
         signer
       );
