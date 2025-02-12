@@ -1,6 +1,8 @@
 # CW1 dApp Project
-
 This project is a dApp for Pokémons NFT Trading. It has two contracts, and React as frontend
+
+# Use of GenAI
+We have used GenAI to streamline our workflow, assisting with tasks like CSS editing, scripting, and implementing various functionalities, allowing us to work more efficiently and focus on core development, including contracts, core front-end functionalities and integration of components.
 
 # Setup Guide
 # Contract Deployment
@@ -39,7 +41,7 @@ export const CONTRACT_ADDRESSES = {
 };
 ```
 
----
+------------------
 
 # Minting NFTs (Pokémons)
 To mint all Pokémon NFTs with the admin as the owner:
@@ -57,13 +59,13 @@ npx hardhat run scripts/mint.ts --network localhost
 
 This will **mint all Pokémon NFTs** to the admin's wallet.
 
----
+------------------
 
 # MetaMask Setup
 # Step 1: Add Hardhat Localhost to MetaMask
-- Open MetaMask.
+- Download and open MetaMask on your browser.
 - Click on the network selector (top left, usually says "Ethereum Mainnet").
-- Click "Add Network" → "Add a Network Manually".
+- Click "Add Network", then "Add a Network Manually".
 Fill in the details:
 - Network Name: Hardhat Localhost
 - New RPC URL: http://127.0.0.1:8545/
@@ -75,10 +77,11 @@ Now, MetaMask is connected to the local Hardhat blockchain.
 
 # Step 2: Import a Hardhat Test Account into MetaMask
 Copy a private key from the Hardhat terminal (look for "Private Key" under one of the generated accounts).
-In MetaMask, click your profile icon → "Import Account".
+In MetaMask, click your profile icon, then "Import Account".
 Paste the private key and click "Import".
 Now Your MetaMask wallet is now connected to the local blockchain with test ETH.
----
+
+------------------
 
 # Webpage Deployment
 To start the **frontend application**, follow these steps:

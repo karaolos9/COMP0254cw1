@@ -57,6 +57,7 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
         const cleanUri = uri.replace('ipfs://', '');
         if (cleanUri === ipfsHash) {
           tokenId = i;
+          console.log('Found matching token ID:', i);
           break;
         }
       }
@@ -68,23 +69,35 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
       // Check ownership
       const owner = await nftContract.ownerOf(tokenId);
       const currentSigner = await signer.getAddress();
+      console.log('Owner:', owner);
+      console.log('Current signer:', currentSigner);
+      
       if (owner.toLowerCase() !== currentSigner.toLowerCase()) {
         throw new Error('You do not own this NFT');
       }
 
-      // Now approve the trading contract
+      // Now check and approve the trading contract if needed
       const nftContractWithSigner = nftContract.connect(signer);
       
       // Check if approved for all
       const isApprovedForAll = await nftContract.isApprovedForAll(
-        await signer.getAddress(),
+        currentSigner,
         CONTRACT_ADDRESSES.TRADING_CONTRACT
       );
       
+      console.log('Is approved for all:', isApprovedForAll);
+      
       if (!isApprovedForAll) {
         console.log('Approving trading contract...');
-        const approveTx = await nftContractWithSigner.setApprovalForAll(CONTRACT_ADDRESSES.TRADING_CONTRACT, true);
-        await approveTx.wait();
+        try {
+          const approveTx = await nftContractWithSigner.setApprovalForAll(CONTRACT_ADDRESSES.TRADING_CONTRACT, true);
+          console.log('Approval transaction sent:', approveTx.hash);
+          await approveTx.wait();
+          console.log('Approval confirmed');
+        } catch (approvalError: any) {
+          console.error('Error during approval:', approvalError);
+          throw new Error(`Approval failed: ${approvalError.message}`);
+        }
       }
 
       // Now list the card
@@ -95,8 +108,12 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
       );
 
       const priceInWei = ethers.parseEther(price);
+      console.log('Listing card with price:', priceInWei.toString());
+      
       const listTx = await tradingContract.listCard(tokenId, priceInWei);
+      console.log('Listing transaction sent:', listTx.hash);
       await listTx.wait();
+      console.log('Listing confirmed');
       
       setIsSuccess(true);
       setIsListing(false);
@@ -112,6 +129,8 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
         errorMessage += 'You do not own this NFT';
       } else if (error.message.includes('Token ID not found')) {
         errorMessage += 'Token ID not found for this NFT';
+      } else if (error.message.includes('Approval failed')) {
+        errorMessage += error.message;
       } else {
         errorMessage += error.reason || error.message || 'Unknown error occurred';
       }

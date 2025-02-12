@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { PinataImage } from './PinataImage';
 import '../styles/InlineProductDetails.css';
+import ListingModal from './ListingModal';
+import AuctionModal from './AuctionModal';
 import { ethers } from 'ethers';
 import { Toast } from './Toast';
 import { CONTRACT_ADDRESSES, CONTRACT_ABIS } from '../config';
@@ -37,6 +39,7 @@ interface InlineProductDetailsProps {
   seller?: string;
   tokenId?: number;
   account?: string | null;
+  isProfileView?: boolean;
 }
 
 interface Bid {
@@ -53,7 +56,8 @@ export default function InlineProductDetails({
   price,
   seller,
   tokenId,
-  account
+  account,
+  isProfileView = false
 }: InlineProductDetailsProps) {
   const { addToCart, cartItems, removeFromCart } = useCart();
   const [bidAmount, setBidAmount] = useState<string>('');
@@ -74,78 +78,114 @@ export default function InlineProductDetails({
   const [showCancelSuccessPopup, setShowCancelSuccessPopup] = useState(false);
   const [pokemonStats, setPokemonStats] = useState<PokemonStats | null>(null);
   const [showBidOverlay, setShowBidOverlay] = useState(false);
+  const [showAuctionModal, setShowAuctionModal] = useState(false);
+  const [showListingModal, setShowListingModal] = useState(false);
+  const [foundTokenId, setFoundTokenId] = useState<number | null>(null);
   
   useEffect(() => {
-    const checkListingStatus = async () => {
-      if (!window.ethereum || !tokenId) return;
+    const checkNFTStatus = async () => {
+      if (!window.ethereum) return;
       
       try {
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const signerAddress = await signer.getAddress();
         
-        const tradingContract = new ethers.Contract(
-          CONTRACT_ADDRESSES.TRADING_CONTRACT,
-          CONTRACT_ABIS.TRADING_CONTRACT,
-          provider
-        );
-        
-        // Get listing and auction details
-        const listing = await tradingContract.listings(tokenId);
-        setIsListed(listing.isActive);
-        setIsAuction(listing.isAuction);
-        setIsOwner(listing.seller?.toLowerCase() === signerAddress.toLowerCase());
-
-        if (listing.isAuction) {
-          const auction = await tradingContract.auctions(tokenId);
-          setAuctionEndTime(Number(auction.endTime));
-
-          // Get auction events to show bid history
-          const filter = tradingContract.filters.AuctionBid(tokenId);
-          const events = await tradingContract.queryFilter(filter);
-          
-          const bids = events
-            .filter((event): event is ethers.Log & { args: any[] } => 'args' in event)
-            .map(async event => {
-              const block = await event.getBlock();
-              return {
-                bidder: event.args[1], // bidder address
-                amount: event.args[2], // bid amount
-                timestamp: block.timestamp
-              };
-            });
-
-          const resolvedBids = await Promise.all(bids);
-          setCurrentBids(resolvedBids.sort((a, b) => b.timestamp - a.timestamp)); // Sort by most recent
-        }
-
-        // Get NFT contract to fetch Pokemon stats
+        // Get NFT contract first
         const nftContract = new ethers.Contract(
           CONTRACT_ADDRESSES.NFT_CONTRACT,
           CONTRACT_ABIS.NFT_CONTRACT,
           provider
         );
 
-        // Fetch Pokemon stats for this token
         try {
-          const stats = await nftContract.getPokemonStats(tokenId);
-          setPokemonStats({
-            hp: Number(stats.hp),
-            attack: Number(stats.attack),
-            defense: Number(stats.defense),
-            speed: Number(stats.speed),
-            special: Number(stats.special),
-            pokemonType: Number(stats.pokemonType)
-          });
+          // First find the correct token ID by matching IPFS hash
+          const totalTokens = await nftContract.cardIdCounter();
+          let foundTokenId = tokenId; // Use passed tokenId as fallback
+          
+          if (!tokenId) {
+            for (let i = 1; i <= totalTokens; i++) {
+              const uri = await nftContract.tokenURI(i);
+              const cleanUri = uri.replace('ipfs://', '');
+              if (cleanUri === ipfsHash) {
+                foundTokenId = i;
+                console.log('Found matching token ID:', i);
+                break;
+              }
+            }
+          }
+
+          if (foundTokenId) {
+            // Check ownership
+            const owner = await nftContract.ownerOf(foundTokenId);
+            setIsOwner(owner.toLowerCase() === signerAddress.toLowerCase());
+
+            // Fetch Pokemon stats
+            const stats = await nftContract.getPokemonStats(foundTokenId);
+            setPokemonStats({
+              hp: Number(stats.hp),
+              attack: Number(stats.attack),
+              defense: Number(stats.defense),
+              speed: Number(stats.speed),
+              special: Number(stats.special),
+              pokemonType: Number(stats.pokemonType)
+            });
+
+            // Now check if it's listed in the trading contract
+            const tradingContract = new ethers.Contract(
+              CONTRACT_ADDRESSES.TRADING_CONTRACT,
+              CONTRACT_ABIS.TRADING_CONTRACT,
+              provider
+            );
+            
+            try {
+              const listing = await tradingContract.listings(foundTokenId);
+              setIsListed(listing.isActive);
+              setIsAuction(listing.isAuction);
+
+              if (listing.isAuction) {
+                const auction = await tradingContract.auctions(foundTokenId);
+                setAuctionEndTime(Number(auction.endTime));
+
+                // Get auction events to show bid history
+                const filter = tradingContract.filters.AuctionBid(foundTokenId);
+                const events = await tradingContract.queryFilter(filter);
+                
+                const bids = events
+                  .filter((event): event is ethers.Log & { args: any[] } => 'args' in event)
+                  .map(async event => {
+                    const block = await event.getBlock();
+                    return {
+                      bidder: event.args[1],
+                      amount: event.args[2],
+                      timestamp: block.timestamp
+                    };
+                  });
+
+                const resolvedBids = await Promise.all(bids);
+                setCurrentBids(resolvedBids.sort((a, b) => b.timestamp - a.timestamp));
+              }
+            } catch (error) {
+              console.error('Error checking listing status:', error);
+              setIsListed(false);
+              setIsAuction(false);
+              setAuctionEndTime(0);
+              setCurrentBids([]);
+            }
+          } else {
+            console.error('Could not find token ID for IPFS hash:', ipfsHash);
+            setPokemonStats(null);
+          }
         } catch (error) {
-          console.error('Error fetching Pokemon stats:', error);
+          console.error('Error fetching NFT data:', error);
+          setPokemonStats(null);
         }
       } catch (error) {
-        console.error('Error checking listing status:', error);
+        console.error('Error initializing contracts:', error);
       }
     };
 
-    checkListingStatus();
+    checkNFTStatus();
 
     // Update countdown timer every second
     const timer = setInterval(() => {
@@ -170,6 +210,12 @@ export default function InlineProductDetails({
 
     return () => clearInterval(timer);
   }, [tokenId, auctionEndTime]);
+
+  useEffect(() => {
+    if (showAuctionModal && tokenId) {
+      console.log('Rendering AuctionModal with tokenId:', tokenId);
+    }
+  }, [showAuctionModal, tokenId]);
 
   const handleCancelListing = async () => {
     if (!window.ethereum || !tokenId) return;
@@ -381,6 +427,112 @@ export default function InlineProductDetails({
     window.location.reload();
   };
 
+  const handleStartAuction = async () => {
+    try {
+      if (!window.ethereum) {
+        console.error('No ethereum provider found');
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const tradingContract = new ethers.Contract(
+        CONTRACT_ADDRESSES.TRADING_CONTRACT,
+        CONTRACT_ABIS.TRADING_CONTRACT,
+        signer
+      );
+
+      // Check if contract is paused using the correct function
+      const isPaused = await tradingContract.paused();
+      console.log('Trading contract paused status:', isPaused);
+      if (isPaused) {
+        setToastMessage('Trading is currently paused');
+        setToastType('error');
+        setShowToast(true);
+        return;
+      }
+
+      // Check contract addresses
+      console.log('Contract addresses:', {
+        nft: CONTRACT_ADDRESSES.NFT_CONTRACT,
+        trading: CONTRACT_ADDRESSES.TRADING_CONTRACT
+      });
+
+      // Find the token ID if not already set
+      if (!tokenId) {
+        const nftContract = new ethers.Contract(
+          CONTRACT_ADDRESSES.NFT_CONTRACT,
+          CONTRACT_ABIS.NFT_CONTRACT,
+          provider
+        );
+
+        const totalTokens = await nftContract.cardIdCounter();
+        console.log('Total tokens:', totalTokens.toString());
+        
+        // Find the token ID that matches our IPFS hash
+        for (let i = 1; i <= totalTokens; i++) {
+          const uri = await nftContract.tokenURI(i);
+          const cleanUri = uri.replace('ipfs://', '');
+          if (cleanUri === ipfsHash) {
+            console.log('Found matching token ID:', i);
+            // Since we can't modify the tokenId prop directly, we'll store it in state
+            setFoundTokenId(i);
+            break;
+          }
+        }
+      }
+
+      console.log('Setting showAuctionModal to true');
+      setShowAuctionModal(true);
+      console.log('TokenId when showing modal:', tokenId || foundTokenId);
+    } catch (error) {
+      console.error('Error starting auction:', error);
+      setToastMessage('Error starting auction: ' + (error as Error).message);
+      setToastType('error');
+      setShowToast(true);
+    }
+  };
+
+  const handleStartListing = async () => {
+    try {
+      if (!window.ethereum) {
+        console.error('No ethereum provider found');
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const tradingContract = new ethers.Contract(
+        CONTRACT_ADDRESSES.TRADING_CONTRACT,
+        CONTRACT_ABIS.TRADING_CONTRACT,
+        signer
+      );
+
+      // Check if contract is paused using the correct function
+      const isPaused = await tradingContract.paused();
+      console.log('Trading contract paused status:', isPaused);
+      if (isPaused) {
+        setToastMessage('Trading is currently paused');
+        setToastType('error');
+        setShowToast(true);
+        return;
+      }
+
+      // Check contract addresses
+      console.log('Contract addresses:', {
+        nft: CONTRACT_ADDRESSES.NFT_CONTRACT,
+        trading: CONTRACT_ADDRESSES.TRADING_CONTRACT
+      });
+
+      setShowListingModal(true);
+    } catch (error) {
+      console.error('Error starting listing:', error);
+      setToastMessage('Error starting listing: ' + (error as Error).message);
+      setToastType('error');
+      setShowToast(true);
+    }
+  };
+
   return (
     <>
       <div 
@@ -459,71 +611,155 @@ export default function InlineProductDetails({
                     </div>
                   </div>
                   <div className="action-buttons">
-                    {isOwner || account?.toLowerCase() === seller?.toLowerCase() ? (
+                    {isProfileView ? (
                       <>
-                        <button
-                          className="cancel-listing-button"
-                          onClick={handleCancelListing}
-                          disabled={isAuction || isCancelling}
-                          title={isAuction ? "Cannot cancel an active auction" : "Cancel listing"}
-                        >
-                          {isCancelling ? (
-                            <>
-                              <i className="fas fa-spinner fa-spin"></i>
-                              Cancelling...
-                            </>
-                          ) : (
-                            <>
-                              <i className="fas fa-times"></i>
-                              Cancel Listing
-                            </>
-                          )}
-                        </button>
-                        <button 
-                          className="view-auction-button"
-                          onClick={() => {
-                            const auctionSection = document.querySelector('.auction-section');
-                            auctionSection?.scrollIntoView({ behavior: 'smooth' });
-                          }}
-                          disabled={!isAuction}
-                        >
-                          <i className="fas fa-gavel"></i>
-                          View Auction
-                        </button>
+                        {/* Profile view actions */}
+                        {isListed ? (
+                          <>
+                            <button
+                              className="cancel-listing-button"
+                              onClick={handleCancelListing}
+                              disabled={isAuction || isCancelling}
+                              title={isAuction ? "Cannot cancel an active auction" : "Cancel listing"}
+                            >
+                              {isCancelling ? (
+                                <>
+                                  <i className="fas fa-spinner fa-spin"></i>
+                                  Cancelling...
+                                </>
+                              ) : (
+                                <>
+                                  <i className="fas fa-times"></i>
+                                  Cancel Listing
+                                </>
+                              )}
+                            </button>
+                            {!isAuction && (
+                              <button 
+                                className="auction-button"
+                                onClick={handleStartAuction}
+                              >
+                                <i className="fas fa-gavel"></i>
+                                Start Auction
+                              </button>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            {isAuction ? (
+                              <button 
+                                className="view-auction-button"
+                                onClick={() => {
+                                  const auctionSection = document.querySelector('.auction-section');
+                                  auctionSection?.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                              >
+                                <i className="fas fa-gavel"></i>
+                                View Auction
+                              </button>
+                            ) : (
+                              <>
+                                <button 
+                                  className="list-button"
+                                  onClick={handleStartListing}
+                                >
+                                  <i className="fas fa-tag"></i>
+                                  List for Sale
+                                </button>
+                                <button 
+                                  className="auction-button"
+                                  onClick={handleStartAuction}
+                                >
+                                  <i className="fas fa-gavel"></i>
+                                  Start Auction
+                                </button>
+                              </>
+                            )}
+                          </>
+                        )}
                       </>
                     ) : (
                       <>
-                        {isListed && !isAuction && (
+                        {/* Main view actions */}
+                        {isOwner || account?.toLowerCase() === seller?.toLowerCase() ? (
                           <>
-                            <button 
-                              className={`cart-button ${cartItems.some(item => item.id === ipfsHash) ? 'in-cart' : ''}`}
-                              onClick={handleAddToCart}
-                              disabled={isAuction}
-                            >
-                              <i className="fas fa-shopping-cart"></i>
-                            </button>
-                            <button
-                              className="buy-now-button"
-                              onClick={handleBuyNow}
-                              disabled={isAuction}
-                            >
-                              Buy Now
-                            </button>
+                            {isListed ? (
+                              <>
+                                <button
+                                  className="cancel-listing-button"
+                                  onClick={handleCancelListing}
+                                  disabled={isAuction || isCancelling}
+                                  title={isAuction ? "Cannot cancel an active auction" : "Cancel listing"}
+                                >
+                                  {isCancelling ? (
+                                    <>
+                                      <i className="fas fa-spinner fa-spin"></i>
+                                      Cancelling...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <i className="fas fa-times"></i>
+                                      Cancel Listing
+                                    </>
+                                  )}
+                                </button>
+                                {!isAuction && (
+                                  <button 
+                                    className="auction-button"
+                                    onClick={handleStartAuction}
+                                  >
+                                    <i className="fas fa-gavel"></i>
+                                    Start Auction
+                                  </button>
+                                )}
+                              </>
+                            ) : isAuction ? (
+                              <button 
+                                className="view-auction-button"
+                                onClick={() => {
+                                  const auctionSection = document.querySelector('.auction-section');
+                                  auctionSection?.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                              >
+                                <i className="fas fa-gavel"></i>
+                                View Auction
+                              </button>
+                            ) : null}
                           </>
-                        )}
-                        
-                        {isAuction && (
-                          <button 
-                            className="view-auction-button"
-                            onClick={() => {
-                              const auctionSection = document.querySelector('.auction-section');
-                              auctionSection?.scrollIntoView({ behavior: 'smooth' });
-                            }}
-                            disabled={!isAuction}
-                          >
-                            <i className="fas fa-gavel"></i>
-                            View Auction
-                          </button>
+                        ) : (
+                          <>
+                            {isListed && !isAuction && (
+                              <>
+                                <button 
+                                  className={`cart-button ${cartItems.some(item => item.id === ipfsHash) ? 'in-cart' : ''}`}
+                                  onClick={handleAddToCart}
+                                  disabled={isAuction}
+                                >
+                                  <i className="fas fa-shopping-cart"></i>
+                                </button>
+                                <button
+                                  className="buy-now-button"
+                                  onClick={handleBuyNow}
+                                  disabled={isAuction}
+                                >
+                                  Buy Now
+                                </button>
+                              </>
+                            )}
+                            
+                            {isAuction && (
+                              <button 
+                                className="view-auction-button"
+                                onClick={() => {
+                                  const auctionSection = document.querySelector('.auction-section');
+                                  auctionSection?.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                              >
+                                <i className="fas fa-gavel"></i>
+                                View Auction
+                              </button>
+                            )}
+                          </>
                         )}
                       </>
                     )}
@@ -653,6 +889,36 @@ export default function InlineProductDetails({
             <p>{isPlacingBid ? 'Processing your bid...' : isFinalizingAuction ? 'Finalizing auction...' : 'Cancelling listing...'}</p>
           </div>
         </div>
+      )}
+      {showListingModal && (
+        <ListingModal
+          onClose={() => setShowListingModal(false)}
+          ipfsHash={ipfsHash}
+          onSuccess={() => {
+            setShowListingModal(false);
+            onClose();
+          }}
+          setToastMessage={setToastMessage}
+          setToastType={setToastType}
+          setShowToast={setShowToast}
+        />
+      )}
+      {showAuctionModal && (tokenId || foundTokenId) && (
+        <AuctionModal
+          onClose={() => {
+            console.log('Closing AuctionModal');
+            setShowAuctionModal(false);
+          }}
+          tokenId={tokenId || foundTokenId || 0}
+          onSuccess={() => {
+            console.log('AuctionModal success');
+            setShowAuctionModal(false);
+            onClose();
+          }}
+          setToastMessage={setToastMessage}
+          setToastType={setToastType}
+          setShowToast={setShowToast}
+        />
       )}
     </>
   );

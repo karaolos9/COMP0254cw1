@@ -136,7 +136,8 @@
 .auction-button,
 .place-bid-button,
 .cancel-listing-button,
-.view-auction-button {
+.view-auction-button,
+.list-button {
   padding: 12px 24px;
   height: 48px;
   border-radius: 8px;
@@ -163,7 +164,8 @@
 .auction-button i,
 .place-bid-button i,
 .cancel-listing-button i,
-.view-auction-button i {
+.view-auction-button i,
+.list-button i {
   color: #1e3a8a;
   font-size: 16px;
   transition: color 0.3s ease;
@@ -172,10 +174,11 @@
 /* Hover state */
 .add-to-cart-button:hover,
 .buy-now-button:hover,
-.auction-button:hover,
+.auction-button:hover:not(:disabled),
 .place-bid-button:hover:not(:disabled),
-.cancel-listing-button:hover,
-.view-auction-button:hover {
+.cancel-listing-button:hover:not(:disabled),
+.view-auction-button:hover:not(:disabled),
+.list-button:hover:not(:disabled) {
   background: #1e3a8a;
   color: white;
 }
@@ -183,10 +186,11 @@
 /* Hover state for icons */
 .add-to-cart-button:hover i,
 .buy-now-button:hover i,
-.auction-button:hover i,
+.auction-button:hover:not(:disabled) i,
 .place-bid-button:hover:not(:disabled) i,
-.cancel-listing-button:hover i,
-.view-auction-button:hover i {
+.cancel-listing-button:hover:not(:disabled) i,
+.view-auction-button:hover:not(:disabled) i,
+.list-button:hover:not(:disabled) i {
   color: white;
 }
 
@@ -206,7 +210,8 @@
 .buy-now-button:disabled,
 .auction-button:disabled,
 .cancel-listing-button:disabled,
-.view-auction-button:disabled {
+.view-auction-button:disabled,
+.list-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
   background: #f3f4f6;
@@ -219,7 +224,8 @@
 .buy-now-button:disabled i,
 .auction-button:disabled i,
 .cancel-listing-button:disabled i,
-.view-auction-button:disabled i {
+.view-auction-button:disabled i,
+.list-button:disabled i {
   color: #9ca3af;
 }
 
@@ -407,7 +413,8 @@
   .auction-button,
   .place-bid-button,
   .cancel-listing-button,
-  .view-auction-button {
+  .view-auction-button,
+  .list-button {
     width: 100%;
   }
 
@@ -659,39 +666,44 @@
 }
 
 .cancel-listing-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background-color: #ff4d4d;
-  color: white;
-  border: none;
-  border-radius: 4px;
+  padding: 12px 24px;
+  height: 48px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: white;
+  color: #1e3a8a;
+  border: 2px solid #1e3a8a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.cancel-listing-button:hover:not(:disabled) {
+  background: #1e3a8a;
+  color: white;
 }
 
 .cancel-listing-button:disabled {
-  background-color: #ffb3b3;
-  cursor: not-allowed;
   opacity: 0.7;
-}
-
-.cancel-listing-button:not(:disabled):hover {
-  background-color: #ff3333;
+  cursor: not-allowed;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
 }
 
 .cancel-listing-button i {
-  font-size: 14px;
+  color: var(--error-color);
 }
 
-.cancel-listing-button .fa-spinner {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.cancel-listing-button:hover:not(:disabled) i {
+  color: white;
 }
 
 /* Bid Processing Overlay */
@@ -740,4 +752,37 @@
   font-size: 1.1rem;
   font-weight: 500;
   margin: 0;
+}
+
+.list-button {
+  padding: 12px 24px;
+  height: 48px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: white;
+  color: #1e3a8a;
+  border: 2px solid #1e3a8a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 160px;
+}
+
+.list-button:hover:not(:disabled) {
+  background: #1e3a8a;
+  color: white;
+}
+
+.list-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  color: #9ca3af;
 } 

@@ -70,6 +70,44 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
       const signer = await provider.getSigner();
       const currentSigner = await signer.getAddress();
 
+      // First check NFT contract approval
+      const nftContract = new ethers.Contract(
+        CONTRACT_ADDRESSES.NFT_CONTRACT,
+        CONTRACT_ABIS.NFT_CONTRACT,
+        provider
+      );
+
+      // Check ownership
+      const owner = await nftContract.ownerOf(tokenId);
+      console.log('Owner:', owner);
+      console.log('Current signer:', currentSigner);
+      
+      if (owner.toLowerCase() !== currentSigner.toLowerCase()) {
+        throw new Error('You are not the owner of this NFT');
+      }
+
+      // Check if approved for all
+      const isApprovedForAll = await nftContract.isApprovedForAll(
+        currentSigner,
+        CONTRACT_ADDRESSES.TRADING_CONTRACT
+      );
+      
+      console.log('Is approved for all:', isApprovedForAll);
+      
+      if (!isApprovedForAll) {
+        console.log('Approving trading contract...');
+        try {
+          const nftContractWithSigner = nftContract.connect(signer);
+          const approveTx = await nftContractWithSigner.setApprovalForAll(CONTRACT_ADDRESSES.TRADING_CONTRACT, true);
+          console.log('Approval transaction sent:', approveTx.hash);
+          await approveTx.wait();
+          console.log('Approval confirmed');
+        } catch (approvalError: any) {
+          console.error('Error during approval:', approvalError);
+          throw new Error(`Approval failed: ${approvalError.message}`);
+        }
+      }
+
       const tradingContract = new ethers.Contract(
         CONTRACT_ADDRESSES.TRADING_CONTRACT,
         CONTRACT_ABIS.TRADING_CONTRACT,
@@ -92,6 +130,7 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
         // Cancel the current listing before starting auction
         console.log('Cancelling current listing...');
         const cancelTx = await tradingContract.cancelFixedPriceListing(tokenId);
+        console.log('Cancel transaction sent:', cancelTx.hash);
         await cancelTx.wait();
         console.log('Listing cancelled successfully');
       }
@@ -145,6 +184,8 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
         errorMessage += 'Contract is not approved to handle this NFT';
       } else if (error.message.includes('InactiveListing')) {
         errorMessage += 'This NFT is not actively listed';
+      } else if (error.message.includes('Approval failed')) {
+        errorMessage += error.message;
       } else {
         errorMessage += error.message || 'Unknown error';
       }

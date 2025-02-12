@@ -111,6 +111,7 @@ function AppContent() {
   // Search and Filter Management
   const [filteredItems, setFilteredItems] = useState<PinataItem[]>([]); // Filtered NFT items
   const [isSearching, setIsSearching] = useState(false);               // Search active status
+  const [isProfileView, setIsProfileView] = useState(false);           // Profile view state
   
   // UI State Management
   const [showWalletInfo, setShowWalletInfo] = useState(false);        // Wallet dropdown visibility
@@ -277,12 +278,18 @@ function AppContent() {
       setAccount(null);
       setIsConnected(false);
       setBalance(null);
-      setCurrentView('main');
+      setIsProfileView(false); // Reset profile view to false
       
       // Force clear the connection
       if (window.ethereum && window.ethereum.removeAllListeners) {
         window.ethereum.removeAllListeners();
       }
+      
+      // Refresh NFTs and listings
+      await Promise.all([
+        loadPinataItems(),
+        fetchListedNFTs()
+      ]);
       
       setToastMessage('Wallet disconnected');
       setToastType('success');
@@ -658,63 +665,70 @@ function AppContent() {
 
   // Update the filtering logic for the main page
   useEffect(() => {
-    if (currentView === 'main') {
-      console.log("Starting filtering with:", {
-        totalItems: nftItems.length,
-        listedNFTs: listedNFTs.length,
-        filters,
-        account,
-        searchTerm
-      });
+    console.log("Starting filtering with:", {
+      totalItems: nftItems.length,
+      listedNFTs: listedNFTs.length,
+      filters,
+      account,
+      searchTerm,
+      isProfileView
+    });
 
-      // Map of listed NFTs by IPFS hash for quick lookup
-      const listedNFTsMap = new Map(
-        listedNFTs.map(nft => [nft.ipfsHash, nft])
+    // Map of listed NFTs by IPFS hash for quick lookup
+    const listedNFTsMap = new Map(
+      listedNFTs.map(nft => [nft.ipfsHash, nft])
+    );
+
+    // Start with all NFT items
+    let displayItems = nftItems.map(item => ({
+      ...item,
+      isListed: listedNFTsMap.has(item.ipfs_pin_hash),
+      price: listedNFTsMap.get(item.ipfs_pin_hash)?.price,
+      seller: listedNFTsMap.get(item.ipfs_pin_hash)?.seller,
+      tokenId: listedNFTsMap.get(item.ipfs_pin_hash)?.tokenId,
+      isAuction: listedNFTsMap.get(item.ipfs_pin_hash)?.isAuction || false
+    }));
+
+    // Apply profile view filter if active
+    if (isProfileView) {
+      displayItems = displayItems.filter(item => 
+        item.isOwned || (item.seller?.toLowerCase() === account?.toLowerCase())
       );
-
-      // Start with all NFT items
-      let displayItems = nftItems.map(item => ({
-        ...item,
-        isListed: listedNFTsMap.has(item.ipfs_pin_hash),
-        price: listedNFTsMap.get(item.ipfs_pin_hash)?.price,
-        seller: listedNFTsMap.get(item.ipfs_pin_hash)?.seller,
-        tokenId: listedNFTsMap.get(item.ipfs_pin_hash)?.tokenId,
-        isAuction: listedNFTsMap.get(item.ipfs_pin_hash)?.isAuction || false
-      }));
-
-      // Apply name search filter if there's a search term
-      if (searchTerm) {
-        displayItems = displayItems.filter(item => 
-          item.metadata?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      }
-
-      // Filter based on listing status
-      if (filters.status === 'listed') {
-        displayItems = displayItems.filter(item => item.isListed && !item.isAuction);
-      } else if (filters.status === 'auction') {
-        displayItems = displayItems.filter(item => item.isListed && item.isAuction);
-      } else if (filters.status === 'all') {
-        displayItems = displayItems.filter(item => item.isListed); // Show all listed items
-      }
-
-      // Apply owner filter if selected
-      if (filters.owner === 'me' && account) {
-        displayItems = displayItems.filter(item => 
-          item.seller?.toLowerCase() === account.toLowerCase()
-        );
-      }
-
-      console.log("Filtered items:", {
-        displayItems,
-        filterStatus: filters.status,
-        filterOwner: filters.owner,
-        searchTerm
-      });
-
-      setFilteredItems(displayItems);
     }
-  }, [currentView, nftItems, listedNFTs, account, filters.status, filters.owner, searchTerm]);
+
+    // Apply name search filter if there's a search term
+    if (searchTerm) {
+      displayItems = displayItems.filter(item => 
+        item.metadata?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter based on listing status
+    if (filters.status === 'listed') {
+      displayItems = displayItems.filter(item => item.isListed && !item.isAuction);
+    } else if (filters.status === 'auction') {
+      displayItems = displayItems.filter(item => item.isListed && item.isAuction);
+    } else if (filters.status === 'all' && !isProfileView) {
+      displayItems = displayItems.filter(item => item.isListed); // Show all listed items unless in profile view
+    }
+
+    // Apply owner filter if selected
+    if (filters.owner === 'me' && account) {
+      displayItems = displayItems.filter(item => 
+        item.seller?.toLowerCase() === account.toLowerCase()
+      );
+    }
+
+    console.log("Filtered items:", {
+      displayItems,
+      filterStatus: filters.status,
+      filterOwner: filters.owner,
+      searchTerm,
+      isProfileView
+    });
+
+    setFilteredItems(displayItems);
+  }, [currentView, nftItems, listedNFTs, account, filters.status, filters.owner, searchTerm, isProfileView]);
 
   // Update type selection handler
   const handleTypeSelection = (type: string) => {
@@ -821,6 +835,15 @@ function AppContent() {
     }
   };
 
+  // Add this useEffect to reload items when view changes
+  useEffect(() => {
+    if (isConnected && currentView === 'profile') {
+      console.log("View changed to profile, reloading items");
+      loadPinataItems();
+      fetchListedNFTs();
+    }
+  }, [currentView, isConnected]);
+
   return (
     <div style={{ backgroundColor: '#fff' }}>
       <section id="header">
@@ -883,19 +906,32 @@ function AppContent() {
               )}
             </div>
             <button 
-              className={`profile-btn ${currentView === 'profile' ? 'active' : ''}`}
-              onClick={() => {
+              className={`profile-btn ${isProfileView ? 'active' : ''}`}
+              onClick={async () => {
                 if (!isConnected) {
                   setToastMessage('Please connect your wallet first');
                   setToastType('error');
                   setShowToast(true);
                   return;
                 }
-                setCurrentView(currentView === 'profile' ? 'main' : 'profile');
+                setIsProfileView(!isProfileView);
+                // Reset filters when toggling profile view
+                if (!isProfileView) {
+                  setFilters(prev => ({
+                    ...prev,
+                    status: 'all',
+                    owner: 'all'
+                  }));
+                }
+                // Reload NFT items and listings every time the button is clicked
+                await Promise.all([
+                  loadPinataItems(),
+                  fetchListedNFTs()
+                ]);
               }}
             >
-              <i className={`fas ${currentView === 'profile' ? 'fa-home' : 'fa-user'}`}></i>
-              <span>{currentView === 'profile' ? 'Home' : 'Profile'}</span>
+              <i className={`fas ${isProfileView ? 'fa-home' : 'fa-user'}`}></i>
+              <span>{isProfileView ? 'Home' : 'Profile'}</span>
             </button>
             <a href="#" id="close"><i className="far fa-times"></i></a>
           </ul>
@@ -912,273 +948,259 @@ function AppContent() {
 
       {/* <div className="divider-line"></div> */}
       <Suspense fallback={<div>Loading...</div>}>
-        {currentView === 'main' ? (
-          <div className="main-container">
-            <aside className="sidebar">
-              {/* Status Filter */}
-              <div className="filter-section">
-                <h3 onClick={() => toggleSection('status')}>
-                  Status
-                  <i className={`fas fa-chevron-down ${collapsedSections.status ? 'rotated' : ''}`}></i>
-                </h3>
-                <div className={`filter-content ${collapsedSections.status ? 'collapsed' : 'expanded'}`}>
-                  <div className="filter-option">
-                    <input
-                      type="radio"
-                      id="status-all"
-                      name="status"
-                      checked={filters.status === 'all'}
-                      onChange={() => handleFilterChange('status', 'all')}
-                    />
-                    <label htmlFor="status-all">All</label>
-                  </div>
-                  <div className="filter-option">
-                    <input
-                      type="radio"
-                      id="status-listed"
-                      name="status"
-                      checked={filters.status === 'listed'}
-                      onChange={() => handleFilterChange('status', 'listed')}
-                    />
-                    <label htmlFor="status-listed">Listed</label>
-                  </div>
-                  <div className="filter-option">
-                    <input
-                      type="radio"
-                      id="status-auction"
-                      name="status"
-                      checked={filters.status === 'auction'}
-                      onChange={() => handleFilterChange('status', 'auction')}
-                    />
-                    <label htmlFor="status-auction">On Auction</label>
-                  </div>
+        <div className="main-container">
+          <aside className="sidebar">
+            {/* Status Filter */}
+            <div className="filter-section">
+              <h3 onClick={() => toggleSection('status')}>
+                Status
+                <i className={`fas fa-chevron-down ${collapsedSections.status ? 'rotated' : ''}`}></i>
+              </h3>
+              <div className={`filter-content ${collapsedSections.status ? 'collapsed' : 'expanded'}`}>
+                <div className="filter-option">
+                  <input
+                    type="radio"
+                    id="status-all"
+                    name="status"
+                    checked={filters.status === 'all'}
+                    onChange={() => handleFilterChange('status', 'all')}
+                  />
+                  <label htmlFor="status-all">All</label>
+                </div>
+                <div className="filter-option">
+                  <input
+                    type="radio"
+                    id="status-listed"
+                    name="status"
+                    checked={filters.status === 'listed'}
+                    onChange={() => handleFilterChange('status', 'listed')}
+                  />
+                  <label htmlFor="status-listed">Listed</label>
+                </div>
+                <div className="filter-option">
+                  <input
+                    type="radio"
+                    id="status-auction"
+                    name="status"
+                    checked={filters.status === 'auction'}
+                    onChange={() => handleFilterChange('status', 'auction')}
+                  />
+                  <label htmlFor="status-auction">On Auction</label>
                 </div>
               </div>
+            </div>
 
-              {/* Owner Filter */}
-              <div className="filter-section">
-                <h3 onClick={() => toggleSection('owner')}>
-                  Owner
-                  <i className={`fas fa-chevron-down ${collapsedSections.owner ? 'rotated' : ''}`}></i>
-                </h3>
-                <div className={`filter-content ${collapsedSections.owner ? 'collapsed' : 'expanded'}`}>
-                  <div className="filter-option">
-                    <input
-                      type="radio"
-                      id="owner-all"
-                      name="owner"
-                      checked={filters.owner === 'all'}
-                      onChange={() => handleFilterChange('owner', 'all')}
-                    />
-                    <label htmlFor="owner-all">All</label>
-                  </div>
-                  <div className="filter-option">
-                    <input
-                      type="radio"
-                      id="owner-me"
-                      name="owner"
-                      checked={filters.owner === 'me'}
-                      onChange={() => handleFilterChange('owner', 'me')}
-                    />
-                    <label htmlFor="owner-me">My NFTs</label>
-                  </div>
+            {/* Owner Filter */}
+            <div className="filter-section">
+              <h3 onClick={() => toggleSection('owner')}>
+                Owner
+                <i className={`fas fa-chevron-down ${collapsedSections.owner ? 'rotated' : ''}`}></i>
+              </h3>
+              <div className={`filter-content ${collapsedSections.owner ? 'collapsed' : 'expanded'}`}>
+                <div className="filter-option">
+                  <input
+                    type="radio"
+                    id="owner-all"
+                    name="owner"
+                    checked={filters.owner === 'all'}
+                    onChange={() => handleFilterChange('owner', 'all')}
+                  />
+                  <label htmlFor="owner-all">All</label>
+                </div>
+                <div className="filter-option">
+                  <input
+                    type="radio"
+                    id="owner-me"
+                    name="owner"
+                    checked={filters.owner === 'me'}
+                    onChange={() => handleFilterChange('owner', 'me')}
+                  />
+                  <label htmlFor="owner-me">My NFTs</label>
                 </div>
               </div>
+            </div>
 
-              {/* Price Range Filter */}
-              <div className="filter-section">
-                <h3 onClick={() => toggleSection('price')}>
-                  Price
-                  <i className={`fas fa-chevron-down ${collapsedSections.price ? 'rotated' : ''}`}></i>
-                </h3>
-                <div className={`filter-content ${collapsedSections.price ? 'collapsed' : 'expanded'}`}>
-                  <div className="price-range">
-                    <input
-                      type="number"
-                      placeholder="Min"
-                      className="price-input"
-                      value={filters.priceRange.min || ''}
-                      onChange={(e) => handlePriceRangeChange(
-                        e.target.value ? Number(e.target.value) : null,
-                        filters.priceRange.max
-                      )}
-                    />
-                    <span>to</span>
-                    <input
-                      type="number"
-                      placeholder="Max"
-                      className="price-input"
-                      value={filters.priceRange.max || ''}
-                      onChange={(e) => handlePriceRangeChange(
-                        filters.priceRange.min,
-                        e.target.value ? Number(e.target.value) : null
-                      )}
-                    />
-                  </div>
+            {/* Price Range Filter */}
+            <div className="filter-section">
+              <h3 onClick={() => toggleSection('price')}>
+                Price
+                <i className={`fas fa-chevron-down ${collapsedSections.price ? 'rotated' : ''}`}></i>
+              </h3>
+              <div className={`filter-content ${collapsedSections.price ? 'collapsed' : 'expanded'}`}>
+                <div className="price-range">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    className="price-input"
+                    value={filters.priceRange.min || ''}
+                    onChange={(e) => handlePriceRangeChange(
+                      e.target.value ? Number(e.target.value) : null,
+                      filters.priceRange.max
+                    )}
+                  />
+                  <span>to</span>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    className="price-input"
+                    value={filters.priceRange.max || ''}
+                    onChange={(e) => handlePriceRangeChange(
+                      filters.priceRange.min,
+                      e.target.value ? Number(e.target.value) : null
+                    )}
+                  />
                 </div>
               </div>
+            </div>
 
-              {/* Traits Filter */}
-              <div className="filter-section">
-                <h3 onClick={() => toggleSection('traits')}>
-                  Traits
-                  <i className={`fas fa-chevron-down ${collapsedSections.traits ? 'rotated' : ''}`}></i>
-                </h3>
-                <div className={`filter-content ${collapsedSections.traits ? 'collapsed' : 'expanded'}`}>
-                  <div className="filter-option">
-                    <div className="type-selector">
-                      <button 
-                        className="type-dropdown-button"
-                        onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
-                      >
-                        <div className="selected-types">
-                          {filters.types.length === 0 ? (
-                            <span>Select Types</span>
-                          ) : (
-                            <div className="type-tags">
-                              {filters.types.map(type => (
-                                <div key={type} className={`type-tag ${type.toLowerCase()}`}>
-                                  {type}
-                                  <button
-                                    className="remove-type"
-                                    onClick={(e) => handleRemoveType(type, e)}
-                                  >
-                                    ×
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <i className="fas fa-chevron-down"></i>
-                      </button>
-                      {isTypeDropdownOpen && (
-                        <div className="type-dropdown-panel">
-                          {pokemonTypes.map(type => (
-                            <div 
-                              key={type}
-                              className={`type-badge ${type.toLowerCase()} ${
-                                filters.types.includes(type) ? 'selected' : ''
-                              }`}
-                              onClick={() => handleTypeSelection(type)}
-                            >
-                              {type}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </aside>
-
-            <div className="content-area">
-              <section id="product1" className="section-p1">
-                <div className="pro-container">
-                  {filteredItems.length === 0 ? (
-                    <div className="no-items-message">No NFTs found</div>
-                  ) : (
-                    filteredItems.map((item) => (
-                      <div 
-                        key={item.ipfs_pin_hash} 
-                        className="pro"
-                        onClick={(e) => handleCardClick(e, item)}
-                      >
-                        <PinataImage 
-                          hash={item.ipfs_pin_hash}
-                          alt={item.metadata?.name || 'NFT Item'}
-                        />
-                        <div className="des">
-                          <span>{item.metadata?.keyvalues?.Type || 'Type'}</span>
-                          <h5>{item.metadata?.name || 'Pokemon Card NFT'}</h5>
-                          {item.price && (
-                            <div className="price-tag">
-                              <span>{item.price} ETH</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="button-group">
-                          <div 
-                            className="tooltip" 
-                            data-disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
-                            data-tooltip-message={
-                              item.seller?.toLowerCase() === account?.toLowerCase() 
-                                ? "You are the owner of this NFT"
-                                : item.isAuction 
-                                  ? "This NFT is currently in an auction"
-                                  : ""
-                            }
-                          >
-                            {!item.isAuction && (
-                              <button
-                                className={`cart-button ${cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) ? 'in-cart' : ''}`}
-                                onClick={(e) => handleCartClick(e, item)}
-                                disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
-                              >
-                                <i className="fas fa-shopping-cart"></i>
-                              </button>)
-                            }
-                            {item.isAuction ? (
-                              <button 
-                                className="auction-button"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleCardClick(e, item);
-                                  setTimeout(() => {
-                                    const auctionSection = document.querySelector('.auction-section');
-                                    auctionSection?.scrollIntoView({ behavior: 'smooth' });
-                                  }, 100);
-                                }}
-                              >
-                              View Auction
-                              </button>
-                            ) : (
-                              <button 
-                                className="buy-now-button"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleCartClick(e, item);
-                                  setIsCartOpen(true);
-                                }}
-                                disabled={item.seller?.toLowerCase() === account?.toLowerCase()}
-                              >
-                                Buy Now
-                              </button>
-                            )}
+            {/* Traits Filter */}
+            <div className="filter-section">
+              <h3 onClick={() => toggleSection('traits')}>
+                Traits
+                <i className={`fas fa-chevron-down ${collapsedSections.traits ? 'rotated' : ''}`}></i>
+              </h3>
+              <div className={`filter-content ${collapsedSections.traits ? 'collapsed' : 'expanded'}`}>
+                <div className="filter-option">
+                  <div className="type-selector">
+                    <button 
+                      className="type-dropdown-button"
+                      onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
+                    >
+                      <div className="selected-types">
+                        {filters.types.length === 0 ? (
+                          <span>Select Types</span>
+                        ) : (
+                          <div className="type-tags">
+                            {filters.types.map(type => (
+                              <div key={type} className={`type-tag ${type.toLowerCase()}`}>
+                                {type}
+                                <button
+                                  className="remove-type"
+                                  onClick={(e) => handleRemoveType(type, e)}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
                           </div>
+                        )}
+                      </div>
+                      <i className="fas fa-chevron-down"></i>
+                    </button>
+                    {isTypeDropdownOpen && (
+                      <div className="type-dropdown-panel">
+                        {pokemonTypes.map(type => (
+                          <div 
+                            key={type}
+                            className={`type-badge ${type.toLowerCase()} ${
+                              filters.types.includes(type) ? 'selected' : ''
+                            }`}
+                            onClick={() => handleTypeSelection(type)}
+                          >
+                            {type}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <div className="content-area">
+            <section id="product1" className="section-p1">
+              <div className="pro-container">
+                {filteredItems.length === 0 ? (
+                  <div className="no-items-message">
+                    {isProfileView 
+                      ? "You don't own any NFTs yet"
+                      : "No NFTs found"}
+                  </div>
+                ) : (
+                  filteredItems.map((item) => (
+                    <div 
+                      key={item.ipfs_pin_hash} 
+                      className="pro"
+                      onClick={(e) => handleCardClick(e, item)}
+                    >
+                      <PinataImage 
+                        hash={item.ipfs_pin_hash}
+                        alt={item.metadata?.name || 'NFT Item'}
+                      />
+                      <div className="des">
+                        <span>{item.metadata?.keyvalues?.Type || 'Type'}</span>
+                        <h5>{item.metadata?.name || 'Pokemon Card NFT'}</h5>
+                        {item.price && (
+                          <div className="price-tag">
+                            <span>{item.price} ETH</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="button-group">
+                        <div 
+                          className="tooltip" 
+                          data-disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
+                          data-tooltip-message={
+                            item.seller?.toLowerCase() === account?.toLowerCase() 
+                              ? "You are the owner of this NFT"
+                              : item.isAuction 
+                                ? "This NFT is currently in an auction"
+                                : ""
+                          }
+                        >
+                          {!item.isAuction && (
+                            <button
+                              className={`cart-button ${cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) ? 'in-cart' : ''}`}
+                              onClick={(e) => handleCartClick(e, item)}
+                              disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
+                            >
+                              <i className="fas fa-shopping-cart"></i>
+                            </button>)
+                          }
+                          {item.isAuction ? (
+                            <button 
+                              className="auction-button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleCardClick(e, item);
+                                setTimeout(() => {
+                                  const auctionSection = document.querySelector('.auction-section');
+                                  auctionSection?.scrollIntoView({ behavior: 'smooth' });
+                                }, 100);
+                              }}
+                            >
+                            View Auction
+                            </button>
+                          ) : (
+                            <button 
+                              className="buy-now-button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleCartClick(e, item);
+                                setIsCartOpen(true);
+                              }}
+                              disabled={item.seller?.toLowerCase() === account?.toLowerCase()}
+                            >
+                              Buy Now
+                            </button>
+                          )}
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              </section>
+                    </div>
+                  ))
+                )}
+              </div>
+            </section>
 
-              {isSearching && filteredItems.length === 0 && (
-                <div className="no-results">
-                  <h2>No Pokemon NFT found</h2>
-                </div>
-              )}
-            </div>
-      </div>
-        ) : (
-          <Profile 
-            nftItems={nftItems.filter(item => {
-              const listing = listedNFTs.find(nft => nft.tokenId === item.tokenId);
-              const isListed = listing && listing.seller.toLowerCase() === account?.toLowerCase();
-              if (isListed) {
-                return {
-                  ...item,
-                  price: listing.price,
-                  isListed: true
-                };
-              }
-              return item.isOwned || isListed;
-            })}
-            account={account}
-          />
-        )}
+            {isSearching && filteredItems.length === 0 && (
+              <div className="no-results">
+                <h2>No Pokemon NFT found</h2>
+              </div>
+            )}
+          </div>
+        </div>
       </Suspense>
 
       {/* Product Details Modal */}
@@ -1192,6 +1214,8 @@ function AppContent() {
             price={selectedProduct.price || undefined}
             seller={selectedProduct.seller || undefined}
             tokenId={selectedProduct.tokenId ? Number(selectedProduct.tokenId) : undefined}
+            account={account}
+            isProfileView={isProfileView}
           />
         </Suspense>
       )}
