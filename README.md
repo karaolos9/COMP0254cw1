@@ -1,4 +1,4 @@
-# Sample Hardhat Project
+# CW1 dApp Project
 
 This project is a dApp for Pokémons NFT Trading. It has two contracts, and React as frontend
 
@@ -96,4 +96,4 @@ Run the frontend application locally:
 npm run dev
 ```
 
-The app should now be live at **http://localhost:3000/** (or the port specified in your frontend setup).
+The app should now be live at **http://localhost:5173/**.
