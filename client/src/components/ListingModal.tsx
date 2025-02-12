@@ -102,7 +102,21 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
       setIsListing(false);
     } catch (error: any) {
       console.error("Error listing card:", error);
-      setToastMessage('Error listing card: ' + (error as Error).message);
+      let errorMessage = 'Error listing card: ';
+      
+      if (error.code === 'ACTION_REJECTED' || error.code === 4001) {
+        errorMessage = 'Transaction was rejected by user';
+      } else if (error.message.includes('insufficient funds')) {
+        errorMessage += 'Insufficient funds for transaction';
+      } else if (error.message.includes('You do not own this NFT')) {
+        errorMessage += 'You do not own this NFT';
+      } else if (error.message.includes('Token ID not found')) {
+        errorMessage += 'Token ID not found for this NFT';
+      } else {
+        errorMessage += error.reason || error.message || 'Unknown error occurred';
+      }
+      
+      setToastMessage(errorMessage);
       setToastType('error');
       setShowToast(true);
       setIsListing(false);

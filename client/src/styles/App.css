@@ -24,18 +24,19 @@
 }
 
 .filter-section h3 i {
-  transition: transform 0.3s ease;
+  /* transition: transform 0.2s ease; */
   color: #6B7280;
   pointer-events: none;
   display: inline-block;
+  transform: rotate(180deg)
 }
 
 .filter-section h3 i.rotated {
-  transform: rotate(180deg);
+  transform: rotate(0deg);
 }
 
 .filter-section .filter-content {
-  transition: max-height 0.3s ease-out;
+  /* transition: max-height 0.3s ease-out; */
   overflow: hidden;
   max-height: 200px;
   position: relative;

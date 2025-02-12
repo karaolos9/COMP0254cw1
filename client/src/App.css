@@ -1510,33 +1510,29 @@ button.white {
   transition: transform 0.3s ease;
   color: #6B7280;
   pointer-events: none;
-  display: inline-block;
-  transform: rotate(180deg);
-}
-
-.filter-section h3 i.rotated {
   transform: rotate(0deg);
 }
 
+.filter-section h3 i.rotated {
+  transform: rotate(180deg);
+}
+
 .filter-section .filter-content {
-  transition: max-height 0.3s ease-out;
-  overflow: visible;
-  max-height: none;
-  position: relative;
-  z-index: 1;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  max-height: 500px; /* Set a large enough value to accommodate content */
+  opacity: 1;
 }
 
 .filter-section .filter-content.collapsed {
-  max-height: 0 !important;
-  overflow: hidden;
-  padding: 0;
+  max-height: 0;
+  opacity: 0;
   margin: 0;
-  border: 0;
-  display: none;
+  padding: 0;
 }
 
 .filter-section .filter-content.expanded {
-  max-height: none;
+  opacity: 1;
   padding: 10px;
 }
 

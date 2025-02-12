@@ -154,6 +154,19 @@ function AppContent() {
     traits: false
   });
 
+  // Store collapsed state in localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('collapsedSections', JSON.stringify(collapsedSections));
+  }, [collapsedSections]);
+
+  // Load collapsed state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('collapsedSections');
+    if (savedState) {
+      setCollapsedSections(JSON.parse(savedState));
+    }
+  }, []);
+
   const toggleSection = (section: keyof typeof collapsedSections) => {
     setCollapsedSections(prev => ({
       ...prev,
