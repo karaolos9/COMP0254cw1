@@ -1,6 +1,6 @@
 .search-section {
   position: relative;
-  margin-right: 140px;
+  /* margin-right: 140px; */
   display: flex;
   align-items: center;
   gap: 10px;

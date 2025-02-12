@@ -239,12 +239,12 @@ export default function CartPanel({ isOpen, onClose }: CartPanelProps) {
         <>
           <div className="cart-overlay" onClick={onClose} />
           <div className={`cart-panel ${isOpen ? 'open' : ''}`}>
-            <div className="cart-header">
+            {/* <div className="cart-header">
               <h2>Shopping Cart</h2>
               <button className="close-button" onClick={onClose}>
                 <i className="fas fa-times"></i>
               </button>
-            </div>
+            </div> */}
 
             <div className="cart-items">
               {cartItems.length === 0 ? (
