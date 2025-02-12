@@ -24,8 +24,8 @@ async function main() {
   // Log all deployment addresses for easy reference
   console.log("\nDeployment Summary:");
   console.log("--------------------");
-  console.log(`PokemonCardCreation: ${pokemonCardCreationAddress}`);
-  console.log(`PokemonCardTrading: ${pokemonCardTradingAddress}`);
+  console.log(`NFT_CONTRACT: ${pokemonCardCreationAddress}`);
+  console.log(`TRADING_CONTRACT: ${pokemonCardTradingAddress}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
