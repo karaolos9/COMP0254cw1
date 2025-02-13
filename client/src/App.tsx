@@ -701,14 +701,18 @@ function AppContent() {
       );
 
       // Start with all NFTs and enrich with listing data
-      let displayItems = nftItems.map(item => ({
-        ...item,
-        isListed: listedNFTsMap.has(item.ipfs_pin_hash),
-        price: listedNFTsMap.get(item.ipfs_pin_hash)?.price,
-        seller: listedNFTsMap.get(item.ipfs_pin_hash)?.seller,
-        tokenId: listedNFTsMap.get(item.ipfs_pin_hash)?.tokenId,
-        isAuction: listedNFTsMap.get(item.ipfs_pin_hash)?.isAuction || false
-      }));
+      let displayItems = nftItems.map(item => {
+        const listing = listedNFTsMap.get(item.ipfs_pin_hash);
+        return {
+          ...item,
+          isListed: listedNFTsMap.has(item.ipfs_pin_hash),
+          price: listing?.price,
+          seller: listing?.seller,
+          // Keep the original tokenId if it exists, otherwise use the one from listing
+          tokenId: item.tokenId || listing?.tokenId,
+          isAuction: listing?.isAuction || false
+        };
+      });
 
       // Apply profile view filter
       if (isProfileView) {
@@ -764,8 +768,14 @@ function AppContent() {
         
         const filteredItems = [];
         for (const item of displayItems) {
+          console.log('Processing item:', {
+            ipfsHash: item.ipfs_pin_hash,
+            tokenId: item.tokenId,
+            name: item.metadata?.name
+          });
+          
           if (!item.tokenId) {
-            console.log('No token ID found for item');
+            console.log('No token ID found for item:', item.metadata?.name);
             continue;
           }
 
@@ -777,9 +787,13 @@ function AppContent() {
               provider
             );
 
+            // Convert tokenId to number if it's a string
+            const tokenIdNumber = typeof item.tokenId === 'string' ? parseInt(item.tokenId) : item.tokenId;
+            console.log('Checking token ID:', tokenIdNumber);
+
             // Get Pokemon stats from the blockchain
-            const stats = await nftContract.getPokemonStats(item.tokenId);
-            console.log('Blockchain stats for token', item.tokenId, ':', stats);
+            const stats = await nftContract.getPokemonStats(tokenIdNumber);
+            console.log('Blockchain stats for token', tokenIdNumber, ':', stats);
 
             const checkRange = (statValue: number, min: number | null, max: number | null) => {
               // Use default range if min/max is null
