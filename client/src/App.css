@@ -1812,3 +1812,23 @@ button i {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+.cart-button.in-cart {
+  position: relative;
+}
+
+.cart-button.in-cart::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: #1e3a8a;
+  transform: translateY(-50%) rotate(-45deg);
+  pointer-events: none;
+}
+
+.cart-button.in-cart:hover::before {
+  background-color: white;
+}

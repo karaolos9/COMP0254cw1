@@ -279,6 +279,9 @@ function AppContent() {
       setBalance(null);
       setIsProfileView(false); // Reset profile view to false
       
+      // Clear cart items
+      cartItems.forEach(item => removeFromCart(item.id));
+      
       // Force clear the connection
       if (window.ethereum && window.ethereum.removeAllListeners) {
         window.ethereum.removeAllListeners();
