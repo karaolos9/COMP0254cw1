@@ -771,7 +771,7 @@ export default function InlineProductDetails({
                       <p className="no-bids">No bids yet</p>
                     )}
                   </div>
-                  {!isOwner && auctionEndTime > Math.floor(Date.now() / 1000) && !showFinalizeSuccessPopup && (
+                  {!isProfileView && !isOwner && auctionEndTime > Math.floor(Date.now() / 1000) && !showFinalizeSuccessPopup && (
                     <div className="place-bid">
                       {showBidSuccessPopup ? (
                         <div className="success-popup-overlay" onClick={handleBidSuccessOk}>
@@ -795,8 +795,8 @@ export default function InlineProductDetails({
                             value={bidAmount}
                             onChange={(e) => setBidAmount(e.target.value)}
                             placeholder="Enter bid amount in ETH"
-                            min="0.1"
-                            step="0.01"
+                            min="0.001"
+                            step="0.001"
                             disabled={isPlacingBid}
                           />
                           <button 

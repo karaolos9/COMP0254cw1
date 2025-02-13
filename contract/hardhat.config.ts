@@ -5,12 +5,12 @@ import "./scripts/burnToken";
 
 dotenv.config();
 
-const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL;
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
+// const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL;
+// const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
-if (!SEPOLIA_RPC_URL || !PRIVATE_KEY) {
-  throw new Error("Please set your SEPOLIA_RPC_URL and PRIVATE_KEY in a .env file");
-}
+// if (!SEPOLIA_RPC_URL || !PRIVATE_KEY) {
+//   throw new Error("Please set your SEPOLIA_RPC_URL and PRIVATE_KEY in a .env file");
+// }
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -23,11 +23,11 @@ const config: HardhatUserConfig = {
     }
   },
   networks: {
-    sepolia: {
-      url: SEPOLIA_RPC_URL,
-      accounts: [`0x${PRIVATE_KEY}`],
-      chainId: 11155111
-    },
+    // sepolia: {
+    //   url: SEPOLIA_RPC_URL,
+    //   accounts: [`0x${PRIVATE_KEY}`],
+    //   chainId: 11155111
+    // },
     hardhat: {}, // Local Hardhat Network
     localhost: {
       url: "http://127.0.0.1:8545/",

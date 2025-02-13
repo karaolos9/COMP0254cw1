@@ -7,9 +7,10 @@ We have used GenAI to streamline our workflow, assisting with tasks like CSS edi
 # Setup Guide
 # Contract Deployment
 # Step 1: Start Local Blockchain
-First, navigate into the contract folder and start a local blockchain using Hardhat:
+First, navigate into the contract folder, install Hardhat locally and start a local blockchain using Hardhat:
 ```sh
 cd contract
+npm install --save-dev hardhat
 npx hardhat node
 ```
 This will launch a local blockchain at **http://127.0.0.1:8545/** and generate test accounts.
@@ -17,6 +18,7 @@ This will launch a local blockchain at **http://127.0.0.1:8545/** and generate t
 # Step 2: Save Account Information
 - Copy and save the generated **accounts and private keys** for future reference.
 - Copy the **first private key** and paste it inside `hardhat.config.ts` in the `accounts` section where indicated.
+- The **first account** is the admin.
 
 # Step 3: Deploy the Smart Contracts
 To deploy the contracts to the local testnet, run:
@@ -67,13 +69,13 @@ This will **mint all Pokémon NFTs** to the admin's wallet.
 - Click on the network selector (top left, usually says "Ethereum Mainnet").
 - Click "Add Network", then "Add a Network Manually".
 Fill in the details:
-- Network Name: Hardhat Localhost
+- Network Name: GoChain Testnet
 - New RPC URL: http://127.0.0.1:8545/
 - Chain ID: 31337 (default for Hardhat)
-- Currency Symbol: ETH
+- Currency Symbol: GO
 - Block Explorer URL: (Leave blank)
 Click "Save".
-Now, MetaMask is connected to the local Hardhat blockchain.
+Now, MetaMask is connected to the local blockchain.
 
 # Step 2: Import a Hardhat Test Account into MetaMask
 Copy a private key from the Hardhat terminal (look for "Private Key" under one of the generated accounts).
