@@ -23,6 +23,8 @@ interface PokemonStats {
   speed: number;
   special: number;
   pokemonType: number;
+  seller?: string;
+  tokenId?: number;
 }
 
 interface InlineProductDetailsProps {
@@ -128,7 +130,9 @@ export default function InlineProductDetails({
               defense: Number(stats.defense),
               speed: Number(stats.speed),
               special: Number(stats.special),
-              pokemonType: Number(stats.pokemonType)
+              pokemonType: Number(stats.pokemonType),
+              seller: owner,
+              tokenId: foundTokenId
             });
 
             // Now check if it's listed in the trading contract
@@ -369,7 +373,8 @@ export default function InlineProductDetails({
     }, 300); // Match animation duration
   };
 
-  const formatAddress = (address: string) => {
+  const formatAddress = (address?: string) => {
+    if (!address) return 'Unknown';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
@@ -598,11 +603,11 @@ export default function InlineProductDetails({
                       </div>
                       <div className="metadata-item">
                         <label>Token ID</label>
-                        <span>{tokenId ? `#${tokenId}` : ipfsHash.slice(0, 8)}</span>
+                        <span>{pokemonStats?.tokenId || 'Loading...'}</span>
                       </div>
                       <div className="metadata-item">
                         <label>Owner</label>
-                        <span>{seller ? formatAddress(seller) : 'Unknown'}</span>
+                        <span>{formatAddress(pokemonStats?.seller) || 'Loading...'}</span>
                       </div>
                       <div className="metadata-item">
                         <label>Contract</label>
@@ -614,40 +619,57 @@ export default function InlineProductDetails({
                     {isProfileView ? (
                       <>
                         {/* Profile view actions */}
-                        {isListed ? (
+                        {!isListed ? (
                           <>
-                            <button
-                              className="cancel-listing-button"
-                              onClick={handleCancelListing}
-                              disabled={isAuction || isCancelling}
-                              title={isAuction ? "Cannot cancel an active auction" : "Cancel listing"}
+                            <button 
+                              className="list-button"
+                              onClick={handleStartListing}
                             >
-                              {isCancelling ? (
-                                <>
-                                  <i className="fas fa-spinner fa-spin"></i>
-                                  Cancelling...
-                                </>
-                              ) : (
-                                <>
-                                  <i className="fas fa-times"></i>
-                                  Cancel Listing
-                                </>
-                              )}
+                              <i className="fas fa-tag"></i>
+                              List for Sale
                             </button>
-                            {!isAuction && (
-                              <button 
-                                className="auction-button"
-                                onClick={handleStartAuction}
-                              >
-                                <i className="fas fa-gavel"></i>
-                                Start Auction
-                              </button>
-                            )}
+                            <button 
+                              className="auction-button"
+                              onClick={handleStartAuction}
+                            >
+                              <i className="fas fa-gavel"></i>
+                              Start Auction
+                            </button>
                           </>
                         ) : (
                           <>
-                            {isAuction ? (
-                              <button 
+                            {!isAuction ? (
+                              <>
+                                <button
+                                  className="cancel-listing-button"
+                                  onClick={handleCancelListing}
+                                  disabled={isAuction || isCancelling}
+                                  title={isAuction ? "Cannot cancel an active auction" : "Cancel listing"}
+                                >
+                                  {isCancelling ? (
+                                    <>
+                                      <i className="fas fa-spinner fa-spin"></i>
+                                      Cancelling...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <i className="fas fa-times"></i>
+                                      Cancel Listing
+                                    </>
+                                  )}
+                                </button>
+                                {!isAuction && (
+                                  <button 
+                                    className="auction-button"
+                                    onClick={handleStartAuction}
+                                  >
+                                    <i className="fas fa-gavel"></i>
+                                    Start Auction
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                             <button 
                                 className="view-auction-button"
                                 onClick={() => {
                                   const auctionSection = document.querySelector('.auction-section');
@@ -657,23 +679,6 @@ export default function InlineProductDetails({
                                 <i className="fas fa-gavel"></i>
                                 View Auction
                               </button>
-                            ) : (
-                              <>
-                                <button 
-                                  className="list-button"
-                                  onClick={handleStartListing}
-                                >
-                                  <i className="fas fa-tag"></i>
-                                  List for Sale
-                                </button>
-                                <button 
-                                  className="auction-button"
-                                  onClick={handleStartAuction}
-                                >
-                                  <i className="fas fa-gavel"></i>
-                                  Start Auction
-                                </button>
-                              </>
                             )}
                           </>
                         )}
