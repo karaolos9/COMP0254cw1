@@ -468,10 +468,75 @@ function AppContent() {
     };
   }, []);
 
-  /* Initialization */
+  // Initialization
   useEffect(() => {
     loadPinataItems();
     fetchListedNFTs();
+  }, []);
+
+  // Trading contract event listeners
+  useEffect(() => {
+    if (!window.ethereum) return;
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const tradingContract = new ethers.Contract(
+      CONTRACT_ADDRESSES.TRADING_CONTRACT,
+      CONTRACT_ABIS.TRADING_CONTRACT,
+      provider
+    );
+
+    // Set up event listeners with immediate data refresh
+    const handleCardListed = async (tokenId: bigint, seller: string, price: bigint, isAuction: boolean) => {
+      console.log('Card Listed event:', { tokenId, seller, price, isAuction });
+      // Immediately fetch new listings as this is most relevant
+      await fetchListedNFTs().catch(console.error);
+      // Then update Pinata items in background
+      loadPinataItems().catch(console.error);
+    };
+
+    const handleSaleCompleted = async (tokenId: bigint, buyer: string, price: bigint) => {
+      console.log('Sale Completed event:', { tokenId, buyer, price });
+      await fetchListedNFTs().catch(console.error);
+      loadPinataItems().catch(console.error);
+    };
+
+    const handleAuctionBid = async (tokenId: bigint, bidder: string, amount: bigint) => {
+      console.log('Auction Bid event:', { tokenId, bidder, amount });
+      // For bids, we mainly need to update the listings
+      await fetchListedNFTs().catch(console.error);
+    };
+
+    const handleAuctionEnded = async (tokenId: bigint, winner: string, amount: bigint) => {
+      console.log('Auction Ended event:', { tokenId, winner, amount });
+      // Immediately fetch new listings state
+      await fetchListedNFTs().catch(console.error);
+      // Then update Pinata items in background
+      loadPinataItems().catch(console.error);
+    };
+
+    const handleListingCancelled = async (tokenId: bigint, seller: string) => {
+      console.log('Listing Cancelled event:', { tokenId, seller });
+      // Immediately fetch new listings state
+      await fetchListedNFTs().catch(console.error);
+      // Then update Pinata items in background
+      loadPinataItems().catch(console.error);
+    };
+
+    // Listen to events emitted in real time
+    tradingContract.on('CardListed', handleCardListed);
+    tradingContract.on('SaleCompleted', handleSaleCompleted);
+    tradingContract.on('AuctionBid', handleAuctionBid);
+    tradingContract.on('AuctionEnded', handleAuctionEnded);
+    tradingContract.on('ListingCancelled', handleListingCancelled);
+
+    // Cleanup function to remove event listeners
+    return () => {
+      tradingContract.off('CardListed', handleCardListed);
+      tradingContract.off('SaleCompleted', handleSaleCompleted);
+      tradingContract.off('AuctionBid', handleAuctionBid);
+      tradingContract.off('AuctionEnded', handleAuctionEnded);
+      tradingContract.off('ListingCancelled', handleListingCancelled);
+    };
   }, []);
 
   // Update type handling in state updates
