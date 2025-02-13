@@ -130,14 +130,24 @@
   margin-top: 24px;
 }
 
+/* Action buttons container */
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 /* Common button styles */
-.add-to-cart-button,
-.buy-now-button,
-.auction-button,
-.place-bid-button,
-.cancel-listing-button,
-.view-auction-button,
-.list-button {
+.product-details-content .add-to-cart-button,
+.product-details-content .buy-now-button,
+.product-details-content .auction-button,
+.product-details-content .place-bid-button,
+.product-details-content .cancel-listing-button,
+.product-details-content .view-auction-button,
+.product-details-content .list-button {
+  flex: 1;
   padding: 12px 24px;
   height: 48px;
   border-radius: 8px;
@@ -156,62 +166,63 @@
   gap: 8px;
   min-width: 160px;
   box-sizing: border-box;
+  width: calc(50% - 6px); /* Set width to 50% minus half the gap */
 }
 
 /* Icon styling */
-.add-to-cart-button i,
-.buy-now-button i,
-.auction-button i,
-.place-bid-button i,
-.cancel-listing-button i,
-.view-auction-button i,
-.list-button i {
+.product-details-content .add-to-cart-button i,
+.product-details-content .buy-now-button i,
+.product-details-content .auction-button i,
+.product-details-content .place-bid-button i,
+.product-details-content .cancel-listing-button i,
+.product-details-content .view-auction-button i,
+.product-details-content .list-button i {
   color: #1e3a8a;
   font-size: 16px;
   transition: color 0.3s ease;
 }
 
 /* Hover state */
-.add-to-cart-button:hover,
-.buy-now-button:hover,
-.auction-button:hover:not(:disabled),
-.place-bid-button:hover:not(:disabled),
-.cancel-listing-button:hover:not(:disabled),
-.view-auction-button:hover:not(:disabled),
-.list-button:hover:not(:disabled) {
+.product-details-content .add-to-cart-button:hover,
+.product-details-content .buy-now-button:hover,
+.product-details-content .auction-button:hover:not(:disabled),
+.product-details-content .place-bid-button:hover:not(:disabled),
+.product-details-content .cancel-listing-button:hover:not(:disabled),
+.product-details-content .view-auction-button:hover:not(:disabled),
+.product-details-content .list-button:hover:not(:disabled) {
   background: #1e3a8a;
   color: white;
 }
 
 /* Hover state for icons */
-.add-to-cart-button:hover i,
-.buy-now-button:hover i,
-.auction-button:hover:not(:disabled) i,
-.place-bid-button:hover:not(:disabled) i,
-.cancel-listing-button:hover:not(:disabled) i,
-.view-auction-button:hover:not(:disabled) i,
-.list-button:hover:not(:disabled) i {
+.product-details-content .add-to-cart-button:hover i,
+.product-details-content .buy-now-button:hover i,
+.product-details-content .auction-button:hover:not(:disabled) i,
+.product-details-content .place-bid-button:hover:not(:disabled) i,
+.product-details-content .cancel-listing-button:hover:not(:disabled) i,
+.product-details-content .view-auction-button:hover:not(:disabled) i,
+.product-details-content .list-button:hover:not(:disabled) i {
   color: white;
 }
 
 /* Active/Selected state (for cart button) */
-.add-to-cart-button.selected {
+.product-details-content .add-to-cart-button.selected {
   background: #1e3a8a;
   color: white;
 }
 
-.add-to-cart-button.selected i {
+.product-details-content .add-to-cart-button.selected i {
   color: white;
 }
 
 /* Disabled state */
-.place-bid-button:disabled,
-.add-to-cart-button:disabled,
-.buy-now-button:disabled,
-.auction-button:disabled,
-.cancel-listing-button:disabled,
-.view-auction-button:disabled,
-.list-button:disabled {
+.product-details-content .place-bid-button:disabled,
+.product-details-content .add-to-cart-button:disabled,
+.product-details-content .buy-now-button:disabled,
+.product-details-content .auction-button:disabled,
+.product-details-content .cancel-listing-button:disabled,
+.product-details-content .view-auction-button:disabled,
+.product-details-content .list-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
   background: #f3f4f6;
@@ -219,23 +230,14 @@
   color: #9ca3af;
 }
 
-.place-bid-button:disabled i,
-.add-to-cart-button:disabled i,
-.buy-now-button:disabled i,
-.auction-button:disabled i,
-.cancel-listing-button:disabled i,
-.view-auction-button:disabled i,
-.list-button:disabled i {
+.product-details-content .place-bid-button:disabled i,
+.product-details-content .add-to-cart-button:disabled i,
+.product-details-content .buy-now-button:disabled i,
+.product-details-content .auction-button:disabled i,
+.product-details-content .cancel-listing-button:disabled i,
+.product-details-content .view-auction-button:disabled i,
+.product-details-content .list-button:disabled i {
   color: #9ca3af;
-}
-
-/* Action buttons container */
-.action-buttons {
-  display: flex;
-  gap: 12px;
-  margin-top: 24px;
-  flex-wrap: wrap;
-  align-items: center;
 }
 
 /* Place bid section specific styles */
@@ -753,36 +755,3 @@
   font-weight: 500;
   margin: 0;
 }
-
-.list-button {
-  padding: 12px 24px;
-  height: 48px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: white;
-  color: #1e3a8a;
-  border: 2px solid #1e3a8a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-width: 160px;
-}
-
-.list-button:hover:not(:disabled) {
-  background: #1e3a8a;
-  color: white;
-}
-
-.list-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  background: #f3f4f6;
-  border-color: #d1d5db;
-  color: #9ca3af;
-} 

@@ -916,13 +916,11 @@ function AppContent() {
                 }
                 setIsProfileView(!isProfileView);
                 // Reset filters when toggling profile view
-                if (!isProfileView) {
-                  setFilters(prev => ({
-                    ...prev,
-                    status: 'all',
-                    owner: 'all'
-                  }));
-                }
+                setFilters(prev => ({
+                  ...prev,
+                  status: 'all',
+                  owner: 'all'  // Reset owner filter to 'all'
+                }));
                 // Reload NFT items and listings every time the button is clicked
                 await Promise.all([
                   loadPinataItems(),
@@ -950,6 +948,16 @@ function AppContent() {
       <Suspense fallback={<div>Loading...</div>}>
         <div className="main-container">
           <aside className="sidebar">
+            {/* Profile Section */}
+            {isProfileView && (
+              <div className="filter-section">
+                <h3>My Collection</h3>
+                <p className="wallet-address">
+                  {account ? `${account.slice(0, 6)}...${account.slice(-4)}` : 'Not connected'}
+                </p>
+              </div>
+            )}
+
             {/* Status Filter */}
             <div className="filter-section">
               <h3 onClick={() => toggleSection('status')}>
@@ -991,34 +999,36 @@ function AppContent() {
             </div>
 
             {/* Owner Filter */}
-            <div className="filter-section">
-              <h3 onClick={() => toggleSection('owner')}>
-                Owner
-                <i className={`fas fa-chevron-down ${collapsedSections.owner ? 'rotated' : ''}`}></i>
-              </h3>
-              <div className={`filter-content ${collapsedSections.owner ? 'collapsed' : 'expanded'}`}>
-                <div className="filter-option">
-                  <input
-                    type="radio"
-                    id="owner-all"
-                    name="owner"
-                    checked={filters.owner === 'all'}
-                    onChange={() => handleFilterChange('owner', 'all')}
-                  />
-                  <label htmlFor="owner-all">All</label>
-                </div>
-                <div className="filter-option">
-                  <input
-                    type="radio"
-                    id="owner-me"
-                    name="owner"
-                    checked={filters.owner === 'me'}
-                    onChange={() => handleFilterChange('owner', 'me')}
-                  />
-                  <label htmlFor="owner-me">My NFTs</label>
+            {!isProfileView && (
+              <div className="filter-section">
+                <h3 onClick={() => toggleSection('owner')}>
+                  Owner
+                  <i className={`fas fa-chevron-down ${collapsedSections.owner ? 'rotated' : ''}`}></i>
+                </h3>
+                <div className={`filter-content ${collapsedSections.owner ? 'collapsed' : 'expanded'}`}>
+                  <div className="filter-option">
+                    <input
+                      type="radio"
+                      id="owner-all"
+                      name="owner"
+                      checked={filters.owner === 'all'}
+                      onChange={() => handleFilterChange('owner', 'all')}
+                    />
+                    <label htmlFor="owner-all">All</label>
+                  </div>
+                  <div className="filter-option">
+                    <input
+                      type="radio"
+                      id="owner-me"
+                      name="owner"
+                      checked={filters.owner === 'me'}
+                      onChange={() => handleFilterChange('owner', 'me')}
+                    />
+                    <label htmlFor="owner-me">My NFTs</label>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {/* Price Range Filter */}
             <div className="filter-section">
@@ -1113,9 +1123,7 @@ function AppContent() {
               <div className="pro-container">
                 {filteredItems.length === 0 ? (
                   <div className="no-items-message">
-                    {isProfileView 
-                      ? "You don't own any NFTs yet"
-                      : "No NFTs found"}
+                    No NFTs found
                   </div>
                 ) : (
                   filteredItems.map((item) => (
@@ -1149,43 +1157,47 @@ function AppContent() {
                                 : ""
                           }
                         >
-                          {!item.isAuction && (
-                            <button
-                              className={`cart-button ${cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) ? 'in-cart' : ''}`}
-                              onClick={(e) => handleCartClick(e, item)}
-                              disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
-                            >
-                              <i className="fas fa-shopping-cart"></i>
-                            </button>)
-                          }
-                          {item.isAuction ? (
-                            <button 
-                              className="auction-button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleCardClick(e, item);
-                                setTimeout(() => {
-                                  const auctionSection = document.querySelector('.auction-section');
-                                  auctionSection?.scrollIntoView({ behavior: 'smooth' });
-                                }, 100);
-                              }}
-                            >
-                            View Auction
-                            </button>
-                          ) : (
-                            <button 
-                              className="buy-now-button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                handleCartClick(e, item);
-                                setIsCartOpen(true);
-                              }}
-                              disabled={item.seller?.toLowerCase() === account?.toLowerCase()}
-                            >
-                              Buy Now
-                            </button>
-                          )}
+                          {!isProfileView ? (
+                            <>
+                              {!item.isAuction && (
+                                <button
+                                  className={`cart-button ${cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash) ? 'in-cart' : ''}`}
+                                  onClick={(e) => handleCartClick(e, item)}
+                                  disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
+                                >
+                                  <i className="fas fa-shopping-cart"></i>
+                                </button>
+                              )}
+                              {item.isAuction ? (
+                                <button 
+                                  className="view-auction-button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleCardClick(e, item);
+                                    setTimeout(() => {
+                                      const auctionSection = document.querySelector('.auction-section');
+                                      auctionSection?.scrollIntoView({ behavior: 'smooth' });
+                                    }, 100);
+                                  }}
+                                >
+                                  View Auction
+                                </button>
+                              ) : (
+                                <button 
+                                  className="buy-now-button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleCartClick(e, item);
+                                    setIsCartOpen(true);
+                                  }}
+                                  disabled={item.seller?.toLowerCase() === account?.toLowerCase()}
+                                >
+                                  Buy Now
+                                </button>
+                              )}
+                            </>
+                          ) : null}
                         </div>
                       </div>
                     </div>

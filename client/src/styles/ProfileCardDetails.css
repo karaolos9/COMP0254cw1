@@ -466,35 +466,3 @@
   color: var(--primary-color);
   text-align: center;
 }
-
-.filter-section h3 {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-  margin-bottom: 20px;
-  color: var(--text-color);
-}
-
-.filter-section h3 i {
-  transition: transform 0.3s ease;
-  color: #6B7280;
-}
-
-.filter-section h3 i.rotated {
-  transform: rotate(180deg);
-}
-
-.filter-section .filter-content {
-  transition: max-height 0.3s ease-out;
-  overflow: hidden;
-}
-
-.filter-section .filter-content.collapsed {
-  max-height: 0;
-}
-
-.filter-section .filter-content.expanded {
-  max-height: 500px;
-} 
