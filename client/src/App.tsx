@@ -231,14 +231,14 @@ function AppContent() {
         setAccount(account);
         setIsConnected(true);
 
-        // Switch to Sepolia if needed
+        // Switch to local Hardhat network if needed
         try {
           await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: NETWORK_CONFIG.chainId }],
           });
         } catch (switchError: any) {
-          // This error code indicates that the chain has not been added to MetaMask
+          // This error code indicates that the local Hardhat network has not been added to MetaMask
           if (switchError.code === 4902) {
             try {
               await window.ethereum.request({
@@ -246,8 +246,8 @@ function AppContent() {
                 params: [NETWORK_CONFIG],
               });
             } catch (addError) {
-              console.error('Error adding Sepolia network:', addError);
-              setToastMessage('Failed to add Sepolia network to MetaMask');
+              console.error('Error adding local Hardhat network:', addError);
+              setToastMessage('Failed to add local Hardhat network to MetaMask');
               setToastType('error');
               setShowToast(true);
               return;
