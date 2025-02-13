@@ -958,7 +958,7 @@ button.white {
 }
 
 .wallet-button i {
-  color: var(--background-color);
+  color: white;
 }
 
 /* Wallet info button styles */
@@ -979,8 +979,9 @@ button.white {
   background-color: var(--secondary-color);
 }
 
-.wallet-info-button i {
-  color: #1e3a8a !important;
+.wallet-info-button:hover i,
+.profile-btn:hover i {
+  color: white !important;
 }
 
 /* Cart panel styles */
@@ -1144,8 +1145,9 @@ button.white {
   background-color: var(--background-color);
 }
 
-.profile-btn i {
-  font-size: 1rem;
+.profile-btn i,
+.profile-btn span{
+  color: var(--primary-color);
 }
 
 /* Profile Card Details Styles */
@@ -1504,6 +1506,7 @@ button.white {
 .disconnect-button:hover {
   background: #2563eb;
   transform: translateY(-2px);
+  color: white;
 }
 
 /* Secondary buttons */
@@ -1775,4 +1778,9 @@ button i {
 .buy-now-button:disabled i,
 .view-auction-button:disabled i {
   color: #9ca3af;
+}
+
+.wallet-info-button:hover span,
+.profile-btn:hover span {
+  color: white;
 }
