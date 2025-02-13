@@ -15,7 +15,7 @@ import type { PinataItem as ImportedPinataItem } from './types';
 // Lazy load components
 const CartPanel = lazy(() => import('./components/CartPanel'));
 
-// Use imported type with a different name to avoid conflicts
+// Pinata item info
 type PinataItem = ImportedPinataItem & {
   price?: string;
   seller?: string;
@@ -25,15 +25,14 @@ type PinataItem = ImportedPinataItem & {
 };
 
 // Update the Toast component props
-interface ToastProps {
-  message: string;
-  isVisible: boolean;
-  onHide: () => void;
-  type: 'success' | 'error';
-}
+// interface ToastProps {
+//   message: string;
+//   isVisible: boolean;
+//   onHide: () => void;
+//   type: 'success' | 'error';
+// }
 
-
-// Add these new interfaces
+// Keeps track of the current filter state
 interface FilterState {
   status: 'all' | 'listed' | 'auction';
   owner: 'all' | 'me';
@@ -42,9 +41,16 @@ interface FilterState {
     max: number | null;
   };
   types: string[];
+  statsRange: {
+    hp: { min: number | null; max: number | null };
+    attack: { min: number | null; max: number | null };
+    defense: { min: number | null; max: number | null };
+    speed: { min: number | null; max: number | null };
+    special: { min: number | null; max: number | null };
+  };
 }
 
-// Add near the top with other state declarations
+// Declares the types of Pokemon types
 const pokemonTypes = [
   'Normal',
   'Fire',
@@ -66,6 +72,7 @@ const pokemonTypes = [
   'Fairy'
 ];
 
+// Track and structure the NFT listings
 interface NFTListing {
   tokenId: string;
   ipfsHash: string;
@@ -74,21 +81,13 @@ interface NFTListing {
   isAuction: boolean;
 }
 
-// Update Window interface to use SDKProvider
+// Window interface to use SDKProvider
 declare global {
   interface Window {
     ethereum?: SDKProvider;
   }
 }
 
-/**
- * Main content component containing all the application logic and UI
- * Handles:
- * - Wallet connection/disconnection with MetaMask
- * - NFT display and pagination
- * - Shopping cart functionality
- * - Search and filtering
- */
 function AppContent() {
   // const navigate = useNavigate();
   // const { sdk } = useSDK();
@@ -102,7 +101,6 @@ function AppContent() {
   
   // NFT Display Management
   const [nftItems, setNftItems] = useState<PinataItem[]>([]);        // All NFT items
-  const [currentItems, setCurrentItems] = useState<PinataItem[]>([]);  // Current page items
   
   // Search and Filter Management
   const [filteredItems, setFilteredItems] = useState<PinataItem[]>([]); // Filtered NFT items
@@ -119,7 +117,7 @@ function AppContent() {
   const [showToast, setShowToast] = useState(false);                  // Toast visibility
   const [toastType, setToastType] = useState<'success' | 'error'>('success'); // Toast type
 
-  // Add this to your AppContent component state
+  // Filter using filter state
   const [filters, setFilters] = useState<FilterState>({
     status: 'all',
     owner: 'all',
@@ -127,32 +125,54 @@ function AppContent() {
       min: null,
       max: null
     },
-    types: []
+    types: [],
+    statsRange: {
+      hp: { min: 0, max: 100 },
+      attack: { min: 0, max: 100 },
+      defense: { min: 0, max: 100 },
+      speed: { min: 0, max: 100 },
+      special: { min: 0, max: 100 }
+    }
   });
 
-  // Add this to your AppContent component state
+  // Check dropdown visibility
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
 
   // Add searchTerm to the component state
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Cart item count
   const cartItemCount = cartItems.length;
 
-  // Add this to your AppContent component state
+  // Main or profile view
   const [currentView, setCurrentView] = useState('main'); // 'main' or 'profile'
 
+  // Track listed NFTs
   const [listedNFTs, setListedNFTs] = useState<NFTListing[]>([]);
+
+  // Set the price inputs
+  const [priceInputs, setPriceInputs] = useState({ min: '', max: '' });
+
+  // Add loading state
+  const [isLoading, setIsLoading] = useState(true);
 
   // Add state for collapsed sections
   const [collapsedSections, setCollapsedSections] = useState({
     status: false,
     owner: false,
     price: false,
-    traits: false
+    traits: false,
+    stats: false
   });
 
-  // First add this new state for input values
-  const [priceInputs, setPriceInputs] = useState({ min: '', max: '' });
+  // Initialize stats inputs state
+  const [statsInputs, setStatsInputs] = useState({
+    hp: { min: '0', max: '100' },
+    attack: { min: '0', max: '100' },
+    defense: { min: '0', max: '100' },
+    speed: { min: '0', max: '100' },
+    special: { min: '0', max: '100' }
+  });
 
   // Store collapsed state in localStorage when it changes
   useEffect(() => {
@@ -240,6 +260,7 @@ function AppContent() {
         setToastMessage('Wallet connected successfully');
         setToastType('success');
         setShowToast(true);
+        cartItems.forEach(item => removeFromCart(item.id));
 
         // Store connection state
         localStorage.setItem('walletConnected', 'true');
@@ -514,9 +535,6 @@ function AppContent() {
     }
   };
 
-  // Add loading state
-  const [isLoading, setIsLoading] = useState(true);
-
   const loadPinataItems = async () => {
     setIsLoading(true);
     try {
@@ -543,10 +561,7 @@ function AppContent() {
     }
   }, [account]);
 
-  /**
-   * NFT Card Click Handler
-   * Opens detailed view of selected NFT
-   */
+  // NFT card click handler - Opens detailed view of selected NFT
   const handleCardClick = (e: React.MouseEvent, item: PinataItem) => {
     e.preventDefault();
     const selectedItem: PinataItem = {
@@ -556,19 +571,19 @@ function AppContent() {
     setSelectedProduct(selectedItem);
   };
 
-  /**
-   * Cart Interaction Handlers
-   * Handle adding/removing items from cart and buy now functionality
-   */
-  const handleCartClick = (e: React.MouseEvent, item: PinataItem) => {
+  // Cart interaction handlers
+  // Handles adding/removing items from cart. If isBuyNow is true, only adds to cart
+  const handleCartClick = (e: React.MouseEvent, item: PinataItem, isBuyNow: boolean = false) => {
     e.preventDefault();
     e.stopPropagation();
     const isInCart = cartItems.some(cartItem => cartItem.id === item.ipfs_pin_hash);
     
     if (isInCart) {
-      removeFromCart(item.ipfs_pin_hash);
-      setToastMessage('Removed from cart');
-      setToastType('error');
+      if (!isBuyNow) {  // Only remove if it's not a Buy Now action
+        removeFromCart(item.ipfs_pin_hash);
+        setToastMessage('Removed from cart');
+        setToastType('error');
+      }
     } else {
       if (!item.tokenId) {
         setToastMessage('Error: Token ID not found');
@@ -576,6 +591,7 @@ function AppContent() {
         setShowToast(true);
         return;
       }
+      // Add item to cart with all necessary details
       addToCart({
         id: item.ipfs_pin_hash,
         image: `https://gateway.pinata.cloud/ipfs/${item.ipfs_pin_hash}`,
@@ -590,19 +606,16 @@ function AppContent() {
     setShowToast(true);
   };
 
+  // Buy Now handler - Adds item to cart and opens cart panel
   const handleBuyNow = (e: React.MouseEvent, item: PinataItem) => {
     e.preventDefault();
     if (selectedProduct) {
-      handleCartClick(e, selectedProduct);
+      handleCartClick(e, selectedProduct, true);  // Pass true for isBuyNow
       setSelectedProduct(null);
     }
   };
 
-  /**
-   * Search Handler
-   * Filters NFTs based on name and type
-   * Resets to page 1 when searching
-   */
+  // Search handler - Filter based on name
   const handleSearch = (searchTerm: string) => {
     setSearchTerm(searchTerm);
     setIsSearching(!!searchTerm);
@@ -616,6 +629,7 @@ function AppContent() {
     }));
   };
 
+  // Price range filter handler
   const handlePriceRangeChange = (min: number | null, max: number | null) => {
     setFilters(prev => ({
       ...prev,
@@ -623,92 +637,185 @@ function AppContent() {
     }));
   };
 
-  // Update the filtering logic for the main page
-  useEffect(() => {
-    console.log("Starting filtering with:", {
-      totalItems: nftItems.length,
-      listedNFTs: listedNFTs.length,
-      filters,
-      account,
-      searchTerm,
-      isProfileView
-    });
+  // Add stats range handler
+  const handleStatsRangeChange = (
+    stat: keyof typeof statsInputs,
+    type: 'min' | 'max',
+    value: string
+  ) => {
+    console.log('Stats range change:', { stat, type, value });
 
-    // Map of listed NFTs by IPFS hash for quick lookup
-    const listedNFTsMap = new Map(
-      listedNFTs.map(nft => [nft.ipfsHash, nft])
-    );
-
-    // Start with all NFT items
-    let displayItems = nftItems.map(item => ({
-      ...item,
-      isListed: listedNFTsMap.has(item.ipfs_pin_hash),
-      price: listedNFTsMap.get(item.ipfs_pin_hash)?.price,
-      seller: listedNFTsMap.get(item.ipfs_pin_hash)?.seller,
-      tokenId: listedNFTsMap.get(item.ipfs_pin_hash)?.tokenId,
-      isAuction: listedNFTsMap.get(item.ipfs_pin_hash)?.isAuction || false
+    // Update the input state first
+    setStatsInputs(prev => ({
+      ...prev,
+      [stat]: {
+        ...prev[stat],
+        [type]: value
+      }
     }));
 
-    // Apply profile view filter if active
-    if (isProfileView) {
-      displayItems = displayItems.filter(item => 
-        item.isOwned || (item.seller?.toLowerCase() === account?.toLowerCase())
-      );
+    // Convert to number and validate
+    let numValue: number | null = null;
+    if (value !== '') {
+      numValue = parseInt(value);
+      if (isNaN(numValue) || numValue < 0 || numValue > 100) {
+        console.log('Invalid number value:', numValue);
+        return; // Invalid input, don't update filter
+      }
     }
 
-    // Apply name search filter if there's a search term
-    if (searchTerm) {
-      displayItems = displayItems.filter(item => 
-        item.metadata?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+    console.log('Updating filter with value:', numValue);
 
-    // Filter based on listing status
-    if (filters.status === 'listed') {
-      displayItems = displayItems.filter(item => item.isListed && !item.isAuction);
-    } else if (filters.status === 'auction') {
-      displayItems = displayItems.filter(item => item.isListed && item.isAuction);
-    } else if (filters.status === 'all' && !isProfileView) {
-      displayItems = displayItems.filter(item => item.isListed); // Show all listed items unless in profile view
-    }
-
-    // Apply owner filter if selected
-    if (filters.owner === 'me' && account) {
-      displayItems = displayItems.filter(item => 
-        item.seller?.toLowerCase() === account.toLowerCase()
-      );
-    }
-
-    // Apply type filter if any types are selected
-    if (filters.types.length > 0) {
-      displayItems = displayItems.filter(item => {
-        const itemType = item.metadata?.keyvalues?.Type;
-        return itemType && filters.types.includes(itemType);
-      });
-    }
-
-    // Apply price range filter
-    if (filters.priceRange.min !== null || filters.priceRange.max !== null) {
-      displayItems = displayItems.filter(item => {
-        const price = item.price ? parseFloat(item.price) : 0;
-        if (filters.priceRange.min !== null && price < filters.priceRange.min) return false;
-        if (filters.priceRange.max !== null && price > filters.priceRange.max) return false;
-        return true;
-      });
-    }
-
-    console.log("Filtered items:", {
-      displayItems,
-      filterStatus: filters.status,
-      filterOwner: filters.owner,
-      filterTypes: filters.types,
-      priceRange: filters.priceRange,
-      searchTerm,
-      isProfileView
+    // Update the filter state
+    setFilters(prev => {
+      const newFilters = {
+        ...prev,
+        statsRange: {
+          ...prev.statsRange,
+          [stat]: {
+            ...prev.statsRange[stat],
+            [type]: numValue
+          }
+        }
+      };
+      console.log('New filters state:', newFilters);
+      return newFilters;
     });
+  };
 
-    setFilteredItems(displayItems);
-  }, [currentView, nftItems, listedNFTs, account, filters.status, filters.owner, filters.types, filters.priceRange.min, filters.priceRange.max, searchTerm, isProfileView]);
+  // NFT filtering logic
+  useEffect(() => {
+    const applyFilters = async () => {
+      console.log("Starting filtering with:", {
+        totalItems: nftItems.length,
+        listedNFTs: listedNFTs.length,
+        filters,
+        account,
+        searchTerm,
+        isProfileView
+      });
+
+      // Create quick lookup map for listed NFTs
+      const listedNFTsMap = new Map(
+        listedNFTs.map(nft => [nft.ipfsHash, nft])
+      );
+
+      // Start with all NFTs and enrich with listing data
+      let displayItems = nftItems.map(item => ({
+        ...item,
+        isListed: listedNFTsMap.has(item.ipfs_pin_hash),
+        price: listedNFTsMap.get(item.ipfs_pin_hash)?.price,
+        seller: listedNFTsMap.get(item.ipfs_pin_hash)?.seller,
+        tokenId: listedNFTsMap.get(item.ipfs_pin_hash)?.tokenId,
+        isAuction: listedNFTsMap.get(item.ipfs_pin_hash)?.isAuction || false
+      }));
+
+      // Apply profile view filter
+      if (isProfileView) {
+        displayItems = displayItems.filter(item => 
+          item.isOwned || (item.seller?.toLowerCase() === account?.toLowerCase())
+        );
+      }
+
+      // Apply name search filter
+      if (searchTerm) {
+        displayItems = displayItems.filter(item => 
+          item.metadata?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      // Filter by listing status
+      if (filters.status === 'listed') {
+        displayItems = displayItems.filter(item => item.isListed && !item.isAuction);
+      } else if (filters.status === 'auction') {
+        displayItems = displayItems.filter(item => item.isListed && item.isAuction);
+      } else if (filters.status === 'all' && !isProfileView) {
+        displayItems = displayItems.filter(item => item.isListed);
+      }
+
+      // Filter by owner
+      if (filters.owner === 'me' && account) {
+        displayItems = displayItems.filter(item => 
+          item.seller?.toLowerCase() === account.toLowerCase()
+        );
+      }
+
+      // Filter by Pokemon types
+      if (filters.types.length > 0) {
+        displayItems = displayItems.filter(item => {
+          const itemType = item.metadata?.keyvalues?.Type;
+          return itemType && filters.types.includes(itemType);
+        });
+      }
+
+      // Apply price range filter
+      if (filters.priceRange.min !== null || filters.priceRange.max !== null) {
+        displayItems = displayItems.filter(item => {
+          const price = item.price ? parseFloat(item.price) : 0;
+          if (filters.priceRange.min !== null && price < filters.priceRange.min) return false;
+          if (filters.priceRange.max !== null && price > filters.priceRange.max) return false;
+          return true;
+        });
+      }
+
+      // Apply stats range filter
+      if (Object.values(filters.statsRange).some(range => range.min !== null || range.max !== null)) {
+        console.log('Stats filters active:', filters.statsRange);
+        
+        const filteredItems = [];
+        for (const item of displayItems) {
+          if (!item.tokenId) {
+            console.log('No token ID found for item');
+            continue;
+          }
+
+          try {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const nftContract = new ethers.Contract(
+              CONTRACT_ADDRESSES.NFT_CONTRACT,
+              CONTRACT_ABIS.NFT_CONTRACT,
+              provider
+            );
+
+            // Get Pokemon stats from the blockchain
+            const stats = await nftContract.getPokemonStats(item.tokenId);
+            console.log('Blockchain stats for token', item.tokenId, ':', stats);
+
+            const checkRange = (statValue: number, min: number | null, max: number | null) => {
+              // Use default range if min/max is null
+              const effectiveMin = min ?? 0;
+              const effectiveMax = max ?? 100;
+
+              // Check if value is within range (inclusive)
+              const isInRange = statValue >= effectiveMin && statValue <= effectiveMax;
+              console.log(`Value ${statValue} ${isInRange ? 'within' : 'outside'} range ${effectiveMin}-${effectiveMax}`);
+              return isInRange;
+            };
+
+            // Check all stats against their ranges using blockchain data
+            const isInRange = checkRange(Number(stats.hp), filters.statsRange.hp.min, filters.statsRange.hp.max) &&
+                             checkRange(Number(stats.attack), filters.statsRange.attack.min, filters.statsRange.attack.max) &&
+                             checkRange(Number(stats.defense), filters.statsRange.defense.min, filters.statsRange.defense.max) &&
+                             checkRange(Number(stats.speed), filters.statsRange.speed.min, filters.statsRange.speed.max) &&
+                             checkRange(Number(stats.special), filters.statsRange.special.min, filters.statsRange.special.max);
+
+            if (isInRange) {
+              filteredItems.push(item);
+            }
+          } catch (error) {
+            console.error('Error fetching blockchain stats for token', item.tokenId, ':', error);
+            continue;
+          }
+        }
+        displayItems = filteredItems;
+        console.log('Filtered items count:', displayItems.length);
+      }
+
+      setFilteredItems(displayItems);
+    };
+
+    applyFilters();
+  }, [currentView, nftItems, listedNFTs, account, filters.status, filters.owner, filters.types, filters.priceRange.min, filters.priceRange.max, searchTerm, isProfileView, filters.statsRange]);
 
   // Update type selection handler
   const handleTypeSelection = (type: string) => {
@@ -989,7 +1096,7 @@ function AppContent() {
               </div>
             )}
 
-            {/* Status Filter */}
+            {/* Status Filter - Allows users to filter NFTs by status, Listed or Auction*/}
             <div className="filter-section">
               <h3 onClick={() => toggleSection('status')}>
                 Status
@@ -1029,7 +1136,7 @@ function AppContent() {
               </div>
             </div>
 
-            {/* Owner Filter */}
+            {/* Owner Filter - Allows users to filter NFTs by owner, All or My NFTs */}
             {!isProfileView && (
               <div className="filter-section">
                 <h3 onClick={() => toggleSection('owner')}>
@@ -1061,14 +1168,16 @@ function AppContent() {
               </div>
             )}
 
-            {/* Price Range Filter */}
+            {/* Price Range Filter - Allows users to filter NFTs by price range */}
             <div className="filter-section">
               <h3 onClick={() => toggleSection('price')}>
                 Price
                 <i className={`fas fa-chevron-down ${collapsedSections.price ? 'rotated' : ''}`}></i>
               </h3>
+              {/* Collapsible content for price range inputs */}
               <div className={`filter-content ${collapsedSections.price ? 'collapsed' : 'expanded'}`}>
                 <div className="price-range">
+                  {/* Minimum price input - Validates and updates price range filter */}
                   <input
                     type="number"
                     step="0.001"
@@ -1094,6 +1203,7 @@ function AppContent() {
                     }}
                   />
                   <span>to</span>
+                  {/* Maximum price input - Validates and updates price range filter */}
                   <input
                     type="number"
                     step="0.001"
@@ -1119,6 +1229,52 @@ function AppContent() {
                     }}
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Stats range filter - Allows users to filter NFTs by stats range */}
+            <div className="filter-section">
+              <h3 onClick={() => toggleSection('stats')}>
+                Stats
+                <i className={`fas fa-chevron-down ${collapsedSections.stats ? 'rotated' : ''}`}></i>
+              </h3>
+              <div className={`filter-content ${collapsedSections.stats ? 'collapsed' : 'expanded'}`}>
+                {Object.entries(statsInputs).map(([stat, values]) => (
+                  <div key={stat} className="stats-range">
+                    <label className="stat-label">{stat.charAt(0).toUpperCase() + stat.slice(1)}</label>
+                    <div className="stat-inputs">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="Min"
+                        className="stats-input"
+                        value={values.min}
+                        onChange={(e) => handleStatsRangeChange(stat as keyof typeof statsInputs, 'min', e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === '-' || e.key === 'e') {
+                            e.preventDefault();
+                          }
+                        }}
+                      />
+                      <span>to</span>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        placeholder="Max"
+                        className="stats-input"
+                        value={values.max}
+                        onChange={(e) => handleStatsRangeChange(stat as keyof typeof statsInputs, 'max', e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === '-' || e.key === 'e') {
+                            e.preventDefault();
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -1201,7 +1357,7 @@ function AppContent() {
                         alt={item.metadata?.name || 'NFT Item'}
                       />
                       <div className="des">
-                        <span>{item.metadata?.keyvalues?.Type || 'Type'}</span>
+                        <span className={`type-badge ${(item.metadata?.keyvalues?.Type || '').toLowerCase()}`}>{item.metadata?.keyvalues?.Type || 'Type'}</span>
                         <h5>{item.metadata?.name || 'Pokemon Card NFT'}</h5>
                         {item.price && (
                           <div className="price-tag">
@@ -1210,17 +1366,7 @@ function AppContent() {
                         )}
                       </div>
                       <div className="button-group">
-                        <div 
-                          className="tooltip" 
-                          data-disabled={item.seller?.toLowerCase() === account?.toLowerCase() || item.isAuction}
-                          data-tooltip-message={
-                            item.seller?.toLowerCase() === account?.toLowerCase() 
-                              ? "You are the owner of this NFT"
-                              : item.isAuction 
-                                ? "This NFT is currently in an auction"
-                                : ""
-                          }
-                        >
+                        <div className="tooltip">
                           {!isProfileView ? (
                             <>
                               {!item.isAuction && (
@@ -1252,7 +1398,7 @@ function AppContent() {
                                   className="buy-now-button"
                                   onClick={(e) => {
                                     e.preventDefault();
-                                    handleCartClick(e, item);
+                                    handleCartClick(e, item, true);
                                     setIsCartOpen(true);
                                   }}
                                   disabled={item.seller?.toLowerCase() === account?.toLowerCase()}
@@ -1270,11 +1416,11 @@ function AppContent() {
               </div>
             </section>
 
-            {isSearching && filteredItems.length === 0 && (
+            {/* {isSearching && filteredItems.length === 0 && (
               <div className="no-results">
                 <h2>No Pokemon NFT found</h2>
               </div>
-            )}
+            )} */}
           </div>
         </div>
       </Suspense>

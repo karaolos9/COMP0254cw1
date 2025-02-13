@@ -1832,3 +1832,49 @@ button i {
 .cart-button.in-cart:hover::before {
   background-color: white;
 }
+
+.stats-range {
+  margin-bottom: 15px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+}
+
+.stat-label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #1e3a8a;
+  text-transform: capitalize;
+}
+
+.stat-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stats-input {
+  width: 70px;
+  padding: 4px 8px;
+  border: 1px solid #cbd5e1;
+  color: black;
+  background-color: white;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.stats-input:focus {
+  outline: none;
+  border-color: #1e3a8a;
+  box-shadow: 0 0 0 1px #1e3a8a;
+}
+
+.stats-input::placeholder {
+  color: #94a3b8;
+}
+
+/* Add hover effect */
+.stats-range:hover {
+  background-color: #f1f5f9;
+}
