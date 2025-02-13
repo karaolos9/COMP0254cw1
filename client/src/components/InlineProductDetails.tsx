@@ -439,32 +439,9 @@ export default function InlineProductDetails({
         return;
       }
 
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const tradingContract = new ethers.Contract(
-        CONTRACT_ADDRESSES.TRADING_CONTRACT,
-        CONTRACT_ABIS.TRADING_CONTRACT,
-        signer
-      );
-
-      // Check if contract is paused using the correct function
-      const isPaused = await tradingContract.paused();
-      console.log('Trading contract paused status:', isPaused);
-      if (isPaused) {
-        setToastMessage('Trading is currently paused');
-        setToastType('error');
-        setShowToast(true);
-        return;
-      }
-
-      // Check contract addresses
-      console.log('Contract addresses:', {
-        nft: CONTRACT_ADDRESSES.NFT_CONTRACT,
-        trading: CONTRACT_ADDRESSES.TRADING_CONTRACT
-      });
-
       // Find the token ID if not already set
-      if (!tokenId) {
+      if (!tokenId && !foundTokenId) {
+        const provider = new ethers.BrowserProvider(window.ethereum);
         const nftContract = new ethers.Contract(
           CONTRACT_ADDRESSES.NFT_CONTRACT,
           CONTRACT_ABIS.NFT_CONTRACT,
@@ -480,7 +457,6 @@ export default function InlineProductDetails({
           const cleanUri = uri.replace('ipfs://', '');
           if (cleanUri === ipfsHash) {
             console.log('Found matching token ID:', i);
-            // Since we can't modify the tokenId prop directly, we'll store it in state
             setFoundTokenId(i);
             break;
           }
@@ -491,8 +467,8 @@ export default function InlineProductDetails({
       setShowAuctionModal(true);
       console.log('TokenId when showing modal:', tokenId || foundTokenId);
     } catch (error) {
-      console.error('Error starting auction:', error);
-      setToastMessage('Error starting auction: ' + (error as Error).message);
+      console.error('Error preparing auction:', error);
+      setToastMessage('Error preparing auction: ' + (error as Error).message);
       setToastType('error');
       setShowToast(true);
     }
@@ -688,7 +664,7 @@ export default function InlineProductDetails({
                         {/* Main view actions */}
                         {isOwner || account?.toLowerCase() === seller?.toLowerCase() ? (
                           <>
-                            {isListed ? (
+                            {!isAuction ? (
                               <>
                                 <button
                                   className="cancel-listing-button"
@@ -708,17 +684,15 @@ export default function InlineProductDetails({
                                     </>
                                   )}
                                 </button>
-                                {!isAuction && (
-                                  <button 
-                                    className="auction-button"
-                                    onClick={handleStartAuction}
-                                  >
-                                    <i className="fas fa-gavel"></i>
-                                    Start Auction
-                                  </button>
-                                )}
+                                <button 
+                                  className="auction-button"
+                                  onClick={handleStartAuction}
+                                >
+                                  <i className="fas fa-gavel"></i>
+                                  Start Auction
+                                </button>
                               </>
-                            ) : isAuction ? (
+                            ) : (
                               <button 
                                 className="view-auction-button"
                                 onClick={() => {
@@ -729,11 +703,12 @@ export default function InlineProductDetails({
                                 <i className="fas fa-gavel"></i>
                                 View Auction
                               </button>
-                            ) : null}
+                            )}
                           </>
                         ) : (
                           <>
-                            {isListed && !isAuction && (
+                            {/* Other customers */}
+                            {!isAuction && (
                               <>
                                 <button 
                                   className={`cart-button ${cartItems.some(item => item.id === ipfsHash) ? 'in-cart' : ''}`}
@@ -751,7 +726,6 @@ export default function InlineProductDetails({
                                 </button>
                               </>
                             )}
-                            
                             {isAuction && (
                               <button 
                                 className="view-auction-button"

@@ -2,6 +2,18 @@ import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESSES, CONTRACT_ABIS } from '../config';
 
+interface ContractTransaction extends ethers.ContractTransaction {
+  hash: string;
+  wait(): Promise<ethers.TransactionReceipt>;
+}
+
+interface NFTContract {
+  setApprovalForAll(operator: string, approved: boolean): Promise<ContractTransaction>;
+  isApprovedForAll(owner: string, operator: string): Promise<boolean>;
+  ownerOf(tokenId: ethers.BigNumberish): Promise<string>;
+  connect(signer: ethers.Signer): NFTContract;
+}
+
 interface AuctionModalProps {
   onClose: () => void;
   tokenId: number;
@@ -75,15 +87,23 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
         CONTRACT_ADDRESSES.NFT_CONTRACT,
         CONTRACT_ABIS.NFT_CONTRACT,
         provider
-      );
+      ) as unknown as NFTContract;
 
-      // Check ownership
+      // Check ownership and seller status
       const owner = await nftContract.ownerOf(tokenId);
       console.log('Owner:', owner);
       console.log('Current signer:', currentSigner);
       
-      if (owner.toLowerCase() !== currentSigner.toLowerCase()) {
-        throw new Error('You are not the owner of this NFT');
+      const tradingContract = new ethers.Contract(
+        CONTRACT_ADDRESSES.TRADING_CONTRACT,
+        CONTRACT_ABIS.TRADING_CONTRACT,
+        provider
+      );
+      const listing = await tradingContract.listings(tokenId);
+      const isSeller = listing.seller?.toLowerCase() === currentSigner.toLowerCase();
+      
+      if (owner.toLowerCase() !== currentSigner.toLowerCase() && !isSeller) {
+        throw new Error('You must be the owner or seller of this NFT');
       }
 
       // Check if approved for all
@@ -108,14 +128,13 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
         }
       }
 
-      const tradingContract = new ethers.Contract(
+      // Get trading contract with signer for transactions
+      const tradingContractWithSigner = new ethers.Contract(
         CONTRACT_ADDRESSES.TRADING_CONTRACT,
         CONTRACT_ABIS.TRADING_CONTRACT,
         signer
       );
 
-      const listing = await tradingContract.listings(tokenId);
-      
       // Check if the NFT is currently listed
       if (listing.isActive) {
         // If listed, verify ownership
@@ -129,7 +148,7 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
 
         // Cancel the current listing before starting auction
         console.log('Cancelling current listing...');
-        const cancelTx = await tradingContract.cancelFixedPriceListing(tokenId);
+        const cancelTx = await tradingContractWithSigner.cancelFixedPriceListing(tokenId);
         console.log('Cancel transaction sent:', cancelTx.hash);
         await cancelTx.wait();
         console.log('Listing cancelled successfully');
@@ -156,7 +175,7 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
         durationInSeconds
       });
 
-      const tx = await tradingContract.startAuction(
+      const tx = await tradingContractWithSigner.startAuction(
         tokenId,
         startingBidInWei,
         durationInSeconds
