@@ -1,6 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-nocheck
-
 import './App.css'
 import { MetaMaskUIProvider } from "@metamask/sdk-react-ui"
 import type { SDKProvider } from "@metamask/sdk";
@@ -17,7 +14,6 @@ import type { PinataItem as ImportedPinataItem } from './types';
 
 // Lazy load components
 const CartPanel = lazy(() => import('./components/CartPanel'));
-const Profile = lazy(() => import('./components/Profile'));
 
 // Use imported type with a different name to avoid conflicts
 type PinataItem = ImportedPinataItem & {
@@ -154,6 +150,9 @@ function AppContent() {
     price: false,
     traits: false
   });
+
+  // First add this new state for input values
+  const [priceInputs, setPriceInputs] = useState({ min: '', max: '' });
 
   // Store collapsed state in localStorage when it changes
   useEffect(() => {
@@ -615,54 +614,6 @@ function AppContent() {
     }));
   };
 
-  // Update the getFilteredItems function
-  const getFilteredItems = () => {
-    return (currentView === 'main' ? filteredItems : nftItems).filter(item => {
-      // Search filter
-      if (searchTerm) {
-        const itemName = item.metadata?.name?.toLowerCase() || '';
-        if (!itemName.includes(searchTerm.toLowerCase())) {
-          return false;
-        }
-      }
-
-      // Owner filter - only apply on main view
-      if (currentView === 'main') {
-        if (filters.owner === 'me' && !item.isOwned) {
-          return false;
-        }
-      }
-
-      // Status filter
-      if (filters.status !== 'all') {
-        const listing = listedNFTs.find(nft => nft.tokenId === item.ipfs_pin_hash);
-        if (filters.status === 'listed' && !listing) {
-          return false;
-        }
-        if (filters.status === 'auction' && (!listing || !listing.isAuction)) {
-          return false;
-        }
-      }
-
-      // Price filter
-      if (filters.priceRange.min || filters.priceRange.max) {
-        const price = (item as any).price ? parseFloat((item as any).price) : 0;
-        if (filters.priceRange.min && price < filters.priceRange.min) return false;
-        if (filters.priceRange.max && price > filters.priceRange.max) return false;
-      }
-
-      // Type filter
-      if (filters.types.length > 0) {
-        const itemType = item.metadata?.keyvalues?.Type || '';
-        if (!filters.types.includes(itemType)) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  };
-
   // Update the filtering logic for the main page
   useEffect(() => {
     console.log("Starting filtering with:", {
@@ -719,16 +670,36 @@ function AppContent() {
       );
     }
 
+    // Apply type filter if any types are selected
+    if (filters.types.length > 0) {
+      displayItems = displayItems.filter(item => {
+        const itemType = item.metadata?.keyvalues?.Type;
+        return itemType && filters.types.includes(itemType);
+      });
+    }
+
+    // Apply price range filter
+    if (filters.priceRange.min !== null || filters.priceRange.max !== null) {
+      displayItems = displayItems.filter(item => {
+        const price = item.price ? parseFloat(item.price) : 0;
+        if (filters.priceRange.min !== null && price < filters.priceRange.min) return false;
+        if (filters.priceRange.max !== null && price > filters.priceRange.max) return false;
+        return true;
+      });
+    }
+
     console.log("Filtered items:", {
       displayItems,
       filterStatus: filters.status,
       filterOwner: filters.owner,
+      filterTypes: filters.types,
+      priceRange: filters.priceRange,
       searchTerm,
       isProfileView
     });
 
     setFilteredItems(displayItems);
-  }, [currentView, nftItems, listedNFTs, account, filters.status, filters.owner, searchTerm, isProfileView]);
+  }, [currentView, nftItems, listedNFTs, account, filters.status, filters.owner, filters.types, filters.priceRange.min, filters.priceRange.max, searchTerm, isProfileView]);
 
   // Update type selection handler
   const handleTypeSelection = (type: string) => {
@@ -1040,24 +1011,52 @@ function AppContent() {
                 <div className="price-range">
                   <input
                     type="number"
+                    step="0.001"
+                    min="0"
                     placeholder="Min"
                     className="price-input"
-                    value={filters.priceRange.min || ''}
-                    onChange={(e) => handlePriceRangeChange(
-                      e.target.value ? Number(e.target.value) : null,
-                      filters.priceRange.max
-                    )}
+                    value={priceInputs.min}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const numValue = parseFloat(value);
+                      if (value === '' || (numValue >= 0)) {
+                        setPriceInputs(prev => ({ ...prev, min: value }));
+                        handlePriceRangeChange(
+                          value ? numValue : null,
+                          filters.priceRange.max
+                        );
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === '-' || e.key === 'e') {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                   <span>to</span>
                   <input
                     type="number"
+                    step="0.001"
+                    min="0"
                     placeholder="Max"
                     className="price-input"
-                    value={filters.priceRange.max || ''}
-                    onChange={(e) => handlePriceRangeChange(
-                      filters.priceRange.min,
-                      e.target.value ? Number(e.target.value) : null
-                    )}
+                    value={priceInputs.max}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const numValue = parseFloat(value);
+                      if (value === '' || (numValue >= 0)) {
+                        setPriceInputs(prev => ({ ...prev, max: value }));
+                        handlePriceRangeChange(
+                          filters.priceRange.min,
+                          value ? numValue : null
+                        );
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === '-' || e.key === 'e') {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </div>
               </div>
