@@ -511,7 +511,11 @@ function AppContent() {
     }
   };
 
+  // Add loading state
+  const [isLoading, setIsLoading] = useState(true);
+
   const loadPinataItems = async () => {
+    setIsLoading(true);
     try {
       const data = await fetchPinataItems();
       console.log("Fetched Pinata items:", data.rows);
@@ -523,6 +527,8 @@ function AppContent() {
       setNftItems(itemsWithOwnership);
     } catch (error) {
       console.error("Error fetching Pinata items:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -814,6 +820,57 @@ function AppContent() {
       fetchListedNFTs();
     }
   }, [currentView, isConnected]);
+
+  // Update useEffect to check for stored NFT details
+  useEffect(() => {
+    const storedDetails = localStorage.getItem('lastBiddedNFT');
+    const shouldSwitchToProfile = localStorage.getItem('switchToProfile') === 'true';
+    
+    if (shouldSwitchToProfile) {
+      setIsProfileView(true);
+      localStorage.removeItem('switchToProfile');
+    }
+    
+    if (storedDetails && !isLoading) {
+      try {
+        const details = JSON.parse(storedDetails);
+        // Find the NFT in our items that matches the stored details
+        const matchingNFT = nftItems.find(item => 
+          item.ipfs_pin_hash === details.ipfsHash && 
+          item.tokenId?.toString() === details.tokenId?.toString()
+        );
+        
+        if (matchingNFT) {
+          console.log('Found matching NFT:', matchingNFT);
+          setSelectedProduct(matchingNFT);
+          // Clear the stored details after reopening
+          localStorage.removeItem('lastBiddedNFT');
+        } else {
+          console.log('No matching NFT found in items:', nftItems);
+        }
+      } catch (error) {
+        console.error('Error parsing stored NFT details:', error);
+      }
+    }
+  }, [nftItems, isLoading]); // Add isLoading to dependencies
+
+  // Add this near the other useEffect hooks
+  useEffect(() => {
+    const handleSwitchToProfile = (event: CustomEvent) => {
+      setIsProfileView(true);
+      loadPinataItems();
+      fetchListedNFTs();
+      if (event.detail?.nftDetails) {
+        setSelectedProduct(event.detail.nftDetails);
+      }
+    };
+
+    window.addEventListener('switchToProfileAndReload', handleSwitchToProfile as EventListener);
+    
+    return () => {
+      window.removeEventListener('switchToProfileAndReload', handleSwitchToProfile as EventListener);
+    };
+  }, []);
 
   return (
     <div style={{ backgroundColor: '#fff' }}>
@@ -1120,7 +1177,12 @@ function AppContent() {
           <div className="content-area">
             <section id="product1" className="section-p1">
               <div className="pro-container">
-                {filteredItems.length === 0 ? (
+                {isLoading ? (
+                  <div className="loading-container">
+                    <div className="loading-spinner"></div>
+                    <p>Loading NFTs...</p>
+                  </div>
+                ) : filteredItems.length === 0 ? (
                   <div className="no-items-message">
                     No NFTs found
                   </div>

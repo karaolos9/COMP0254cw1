@@ -50,6 +50,19 @@ interface Bid {
   timestamp: number;
 }
 
+interface StoredNFTDetails {
+  ipfsHash: string;
+  metadata?: {
+    name?: string;
+    keyvalues?: {
+      Type?: string;
+    };
+  };
+  price?: string;
+  seller?: string;
+  tokenId?: number;
+}
+
 export default function InlineProductDetails({ 
   ipfsHash, 
   metadata, 
@@ -84,6 +97,19 @@ export default function InlineProductDetails({
   const [showListingModal, setShowListingModal] = useState(false);
   const [foundTokenId, setFoundTokenId] = useState<number | null>(null);
   
+  useEffect(() => {
+    // Check if there's stored NFT details to reopen
+    const storedDetails = localStorage.getItem('lastBiddedNFT');
+    if (storedDetails) {
+      const details: StoredNFTDetails = JSON.parse(storedDetails);
+      // Only reopen if this component instance matches the stored details
+      if (details.ipfsHash === ipfsHash && details.tokenId === tokenId) {
+        // Clear the stored details to prevent reopening on subsequent refreshes
+        localStorage.removeItem('lastBiddedNFT');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const checkNFTStatus = async () => {
       if (!window.ethereum) return;
@@ -360,9 +386,19 @@ export default function InlineProductDetails({
   };
 
   const handleBidSuccessOk = () => {
+    // Store the current NFT details before refreshing
+    const nftDetails: StoredNFTDetails = {
+      ipfsHash,
+      metadata,
+      price,
+      seller,
+      tokenId
+    };
+    localStorage.setItem('lastBiddedNFT', JSON.stringify(nftDetails));
+    
     setShowBidSuccessPopup(false);
     onClose();
-    window.location.reload(); // Refresh the page
+    window.location.reload();
   };
 
   const handleClose = () => {
@@ -423,7 +459,7 @@ export default function InlineProductDetails({
   const handleFinalizeSuccessOk = () => {
     setShowFinalizeSuccessPopup(false);
     onClose();
-    window.location.reload(); // Refresh the page to update the NFT status
+    window.location.reload(); // Just refresh the page without reopening
   };
 
   const handleCancelSuccessOk = () => {
@@ -771,7 +807,7 @@ export default function InlineProductDetails({
                       <p className="no-bids">No bids yet</p>
                     )}
                   </div>
-                  {!isProfileView && !isOwner && auctionEndTime > Math.floor(Date.now() / 1000) && !showFinalizeSuccessPopup && (
+                  {!isProfileView && account?.toLowerCase() !== seller?.toLowerCase() && !isOwner && auctionEndTime > Math.floor(Date.now() / 1000) && !showFinalizeSuccessPopup && (
                     <div className="place-bid">
                       {showBidSuccessPopup ? (
                         <div className="success-popup-overlay" onClick={handleBidSuccessOk}>

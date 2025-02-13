@@ -659,14 +659,28 @@ button.white {
 #product1 .pro-container {
   display: grid;
   grid-template-columns: repeat(3, 280px);
-  column-gap: 2rem;
-  row-gap: 2rem;
+  column-gap: 4rem;
+  row-gap: 3rem;
   padding: 2rem;
   overflow-y: auto;
   width: 100%;
   max-width: 1600px;
   margin: 0 auto;
   justify-content: center;
+  position: relative;
+  min-height: 400px;
+}
+
+@media (max-width: 1024px) {
+  #product1 .pro-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  #product1 .pro-container {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
 }
 
 /* Traits Select Style */
@@ -843,19 +857,6 @@ button.white {
 
 .type-badge:hover {
   filter: brightness(0.95);
-}
-
-/* Responsive Styles */
-@media (max-width: 1024px) {
-  #product1 .pro-container {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  #product1 .pro-container {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  }
 }
 
 /* Wallet dropdown styles */
@@ -1783,4 +1784,31 @@ button i {
 .wallet-info-button:hover span,
 .profile-btn:hover span {
   color: white;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: 15px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid #1e3a8a;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }

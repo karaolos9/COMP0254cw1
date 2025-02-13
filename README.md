@@ -14,6 +14,7 @@ npm install --save-dev hardhat
 npx hardhat node
 ```
 This will launch a local blockchain at **http://127.0.0.1:8545/** and generate test accounts.
+Do not close this terminal, as it will stop the local blockchain.
 
 # Step 2: Save Account Information
 - Copy and save the generated **accounts and private keys** for future reference.
@@ -21,7 +22,7 @@ This will launch a local blockchain at **http://127.0.0.1:8545/** and generate t
 - The **first account** is the admin.
 
 # Step 3: Deploy the Smart Contracts
-To deploy the contracts to the local testnet, run:
+To deploy the contracts to the local testnet, run the commands below in a **second terminal**:
 ```sh
 npx hardhat run scripts/deploy.ts --network localhost
 ```
