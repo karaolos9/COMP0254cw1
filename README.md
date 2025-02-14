@@ -1,6 +1,8 @@
 # CW1 dApp Project Overview
 This project is a decentralized application (dApp) for Pokémon NFT Trading. It enables users to trade Pokémon NFTs securely on a local blockchain. The platform integrates Solidity smart contracts for handling transactions, a React frontend, and MetaMask for wallet authentication. Images are stored securely using Pinata (IPFS) for decentralized file storage.
 
+- Video: https://www.youtube.com/watch?v=n_187AYeeHc
+
 # Technical Overview
 ## Solidity
 Both smart contracts use ^0.8.28 which will remain compatible with future versions of solidity (0.8.x).
