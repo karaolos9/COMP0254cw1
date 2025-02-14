@@ -122,6 +122,7 @@ Navigate to the frontend (`client`) folder and install required dependencies:
 ```sh
 cd client
 npm install
+npm install @metamask/sdk-react
 ```
 
 ### Step 2: Start Development Server

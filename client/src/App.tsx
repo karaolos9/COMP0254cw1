@@ -1,6 +1,5 @@
 import './App.css'
-import { MetaMaskUIProvider } from "@metamask/sdk-react-ui"
-import { useSDK } from "@metamask/sdk-react";
+import { MetaMaskUIProvider, useSDK } from "@metamask/sdk-react-ui"
 import type { SDKProvider } from "@metamask/sdk";
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { ethers } from "ethers";
