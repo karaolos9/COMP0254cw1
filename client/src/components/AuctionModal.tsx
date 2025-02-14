@@ -7,6 +7,7 @@ interface ContractTransaction extends ethers.ContractTransaction {
   wait(): Promise<ethers.TransactionReceipt>;
 }
 
+// NFT contract interface
 interface NFTContract {
   setApprovalForAll(operator: string, approved: boolean): Promise<ContractTransaction>;
   isApprovedForAll(owner: string, operator: string): Promise<boolean>;
@@ -14,6 +15,7 @@ interface NFTContract {
   connect(signer: ethers.Signer): NFTContract;
 }
 
+// Auction modal props
 interface AuctionModalProps {
   onClose: () => void;
   tokenId: number;
@@ -23,6 +25,7 @@ interface AuctionModalProps {
   setShowToast: (show: boolean) => void;
 }
 
+// Auction modal component
 const AuctionModal: React.FC<AuctionModalProps> = ({ 
   onClose, 
   tokenId, 
@@ -37,6 +40,7 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
   const [isStarting, setIsStarting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  // Handle starting bid change when typing starting bid
   const handleStartingBidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
@@ -44,6 +48,7 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
     }
   };
 
+  // Handle days change when typing days
   const handleDaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value === '' || /^\d*$/.test(value)) {
@@ -51,6 +56,7 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
     }
   };
 
+  // Handle hours change when typing hours
   const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value === '' || /^\d*$/.test(value)) {
@@ -61,6 +67,7 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
     }
   };
 
+  // Handle start auction, Checks if the auction is valid and starts the auction
   const handleStartAuction = async () => {
     try {
       // Add validation before starting the auction process
@@ -229,6 +236,7 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
     }
   };
 
+  // Handle success ok, Refreshes the page and closes the modal
   const handleSuccessOk = () => {
     onSuccess();
     onClose();

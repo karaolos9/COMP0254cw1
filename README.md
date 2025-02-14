@@ -1,5 +1,5 @@
 # CW1 dApp Project Overview
-This project is a decentralized application (dApp) for Pokémon NFT Trading. It enables users to trade Pokémon NFTs securely on the blockchain. The platform integrates Solidity smart contracts for handling transactions, a React frontend, and MetaMask for wallet authentication. Images are stored securely using Pinata (IPFS) for decentralized file storage.
+This project is a decentralized application (dApp) for Pokémon NFT Trading. It enables users to trade Pokémon NFTs securely on a local blockchain. The platform integrates Solidity smart contracts for handling transactions, a React frontend, and MetaMask for wallet authentication. Images are stored securely using Pinata (IPFS) for decentralized file storage.
 
 # Technical Overview
 ## Solidity
@@ -129,15 +129,65 @@ npm run dev
 
 The app should now be live at **http://localhost:5173/**.
 
+---
 
-# User Manual
-Main page, you should login first via metamask by clicking connect before you can properly interact with the nfts.
+# User Manual dApp
 
-On the heade There is a search bar in the header, allow you to pinpoint pokemon you like. A shopping cart, storing the nfts you have added to it, and wallet button we used earlier, as well as profile page, allowing you to access nfts you collected once logged in.
+## 1. Main Page & Login  
+Upon visiting the marketplace, you **must log in via MetaMask** before interacting with NFTs.  
+To do this:  
+1. Click the **"Connect"** button at the top.  
+2. Sign the authentication request in MetaMask.  
+3. Once connected, your wallet address and balance will appear in the **wallet button** once clicked again.  
 
-There is a filter on the left, you will be ablve to filter the properties of the nfts to find the onw you liek, including status, Owner, price, Stats and Types. As well as sorting from price low to high and high to low.
+---
 
-On the nft token display area
+## 2. Header Navigation
+The top navigation bar contains:  
+**Search Bar** – Allows you to search for specific NFTs (e.g., by Pokémon name).  
+**Shopping Cart** – Stores NFTs you have added for purchase.  
+**Wallet Button** – Displays your wallet address (used for login).  
+**Profile Button/Home Button** – Shows NFTs you have collected once logged in. If in profile mode, click again leads back to market place.
+
+---
+
+## 3. Filtering NFTs 
+On the **left side of the page**, you will find **filter options** to refine your search:  
+**Sort NFTs** – By **price (Low → High, High → Low)**.  
+**Filter by Properties** – Including:  
+   - **Status** (All, Listed, Auction).  
+   - **Owner** (All, My NFTs).  
+   - **Price Range** (Min, Max).  
+   - **Stats & Types** (Pokémon Stats & Types).  
+
+---
+
+## 4. Interacting with NFTs
+NFTs are displayed in the **main section** of the page. You can interact with them using:  
+- **"Add to Cart"** – If the NFT is listed for sale, add to shopping cart.  
+- **"Buy Now"** – Instantly purchase the NFT by adding the nft and opening the shopping cart.  
+- **"View Auction"** – If the NFT is in an auction, you can check the current bids and place yours.  
+
+**Clicking on an NFT** opens a **detailed interface**, showing its **metadata, attributes, and available actions** based on its listing status.  
+
+---
+
+## 5. Managing Your NFTs (Profile Page)  
+Click on the **Profile Button (Top Right)** to view your **collected NFTs**. Here, you can:  
+**List NFTs** – Put your NFTs up for sale.  
+**Cancel Listings** – Remove them from the marketplace.  
+**Start an Auction** – Sell via auction.  
+**Finalize Auction** – Complete the sale once the auction ends.
+
+Other than listing, the rest of the actions can be done in non-profile mode as well.
+
+---
+
+## 6. Auction & Marketplace Controls
+If **an auction is paused**, you **will NOT see any action buttons** for buying, bidding, or listing NFTs.  
+This ensures **all marketplace activities are temporarily halted** when necessary.  
+
+---
 
 # Security Considerations
 

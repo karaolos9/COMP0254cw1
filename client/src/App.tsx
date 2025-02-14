@@ -1122,15 +1122,17 @@ function AppContent() {
         <div>
         {/* Navbar */}
           <ul id="navbar">
-            <button 
-              className="cart-button"
-              onClick={() => setIsCartOpen(!isCartOpen)}
-            >
-              <i className="fas fa-shopping-cart"></i>
-              {cartItemCount > 0 && (
-                <span className="cart-count">{cartItemCount}</span>
-              )}
-            </button>
+            {!isPaused && 
+              <button 
+                className="cart-button"
+                onClick={() => setIsCartOpen(!isCartOpen)}
+              >
+                <i className="fas fa-shopping-cart"></i>
+                {cartItemCount > 0 && (
+                  <span className="cart-count">{cartItemCount}</span>
+                )}
+              </button>
+            }
             <div className="wallet-section">
               {!isConnected ? (
                 <button onClick={connectWallet} disabled={isConnecting} className="wallet-button">
@@ -1523,7 +1525,7 @@ function AppContent() {
           </aside>
           {/* Content Display Area for NFTs */}
           <div className="content-area">
-            <section id="product1" className="section-p1">
+            <section id="nft-items" className="nft-section">
               <div className="pro-container">
                 {isLoading ? (
                   <div className="loading-container">
