@@ -216,7 +216,19 @@ function AppContent() {
 
     setIsConnecting(true);
     try {
-      // Request accounts
+      // Clear any existing connection first
+      localStorage.removeItem('walletConnected');
+      localStorage.removeItem('walletAddress');
+      setAccount(null);
+      setIsConnected(false);
+
+      // Force MetaMask to show the account selection popup
+      await window.ethereum!.request({
+        method: 'wallet_requestPermissions',
+        params: [{ eth_accounts: {} }]
+      });
+
+      // Request accounts after permissions
       const accounts = await window.ethereum!.request({
         method: 'eth_requestAccounts'
       }) as string[];
@@ -380,29 +392,30 @@ function AppContent() {
     }
   }, [account]);
 
-  // Update useEffect to use SDK provider
+  // Get Account Balance
+  const getBalance = async () => {
+    if (!account || !window.ethereum) return;
+    
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const balance = await provider.getBalance(account);
+      setBalance(ethers.formatEther(balance));
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+      setBalance('Error');
+    }
+  };
+
+  // Update balance when account changes
   useEffect(() => {
-    if (connected && provider) {
-      const ethersProvider = new ethers.BrowserProvider(provider as any);
-      const getBalance = async () => {
-        if (account) {
-          try {
-            const balance = await ethersProvider.getBalance(account);
-            setBalance(ethers.formatEther(balance));
-          } catch (error) {
-            console.error('Error fetching balance:', error);
-            setBalance('Error');
-          }
-        }
-      };
-      
+    if (account) {
       getBalance();
-      const interval = setInterval(getBalance, 10000);
+      const interval = setInterval(getBalance, 10000); // Update every 10 seconds
       return () => clearInterval(interval);
     } else {
       setBalance(null);
     }
-  }, [connected, provider, account]);
+  }, [account]);
 
   // Initialization
   useEffect(() => {
