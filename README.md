@@ -4,6 +4,7 @@ This project is a dApp for Pokémons NFT Trading. It has two contracts, and Reac
 
 # Technical Overview
 # Solidity
+Both smart contracts use ^0.8.28 which will remain compatible with future versions of solidity (0.8.x).
 
 # React
 
@@ -136,7 +137,106 @@ There is a filter on the left, you will be ablve to filter the properties of the
 
 # Security Considerations
 
+## PokemonNFT Security
+
+- Reentrancy Attacks:
+Uses ReentrancyGuard for added security.
+
+- Unauthorized Minting:
+Only owner can mint (onlyOwner).
+
+- Invalid Pokémon Stats:
+Enforces max stat limit (≤ 100).
+
+- Unauthorized Transfers:
+Uses ERC721 safe transfer functions.
+
+- Pause Functionality:
+Owner can pause/unpause operations.
+
+## TradingContractCW1 Security
+- Reentrancy Attacks:
+Uses ReentrancyGuard to prevent reentrancy attacks in functions that handle NFT transfers and payments. Functions like placeBid(), buyCard(), and finalizeAuction() use nonReentrant to ensure that calls cannot be exploited recursively.
+
+- Unauthorized Listings:
+Ensures that only the NFT owner can list an NFT for sale or auction using the onlyApprovedOwner modifier, which checks both ownership and approval status before allowing a listing.
+
+- Invalid Pricing:
+Prevents zero-price listings by enforcing a minimum price check in listCard() and startAuction(). Ensures that a starting bid in auctions is not zero to prevent manipulation.
+
+- Auction Front-Running:
+Implements minimum bid increments (MIN_INCREMENT) to prevent front-running in placeBid(). A new bid must be at least 5% higher than the previous highest bid, reducing chances of low-value front-running attacks.
+
+- Unauthorized Transfers:
+NFTs are transferred to the contract when listed to prevent unauthorized transfers. This ensures that only the trading contract can execute sales, reducing risks of double spending or unauthorized withdrawals.
+
+- Bid Refund Handling:
+Ensures safe refunding of previous bidders when a new bid is placed in placeBid(). Refunds are stored in pendingWithdrawals before being sent to avoid direct external calls that could introduce reentrancy risks.
+
+- Pausability:
+The contract includes pause and unpause functions (pause() and unpause()) that allow the contract owner to halt all trading activities in case of an exploit or security breach.
+
 # Backend
+
+## PokemonNFT
+
+### Main Functions
+- Minting:
+Create a new Pokémon NFT with stats (HP, Attack, Defense, etc.).
+
+- Metadata:
+Stores Pokémon stats using a struct (PokemonMetadata).
+
+- Pausability:
+The owner can pause/unpause contract functions.
+
+- Access Control:
+Only the contract owner can mint new Pokémon.
+
+### Execution Flow:
+- cardIdCounter: Tracks total NFTs minted (each new card gets a sequential ID).
+- PokemonType: Defines all possible Pokemon types (Normal, Fire, Water, etc).
+- mintCard():	Owner mints an NFT to a user.
+- _mint():	New NFT is assigned to the recipient.
+- _setTokenURI():	Stores metadata URI for the NFT.
+- pokemonData[tokenId]:	Saves Pokémon stats.
+- CardMinted event:	Logs the NFT creation on-chain.
+- getPokemonStats(tokenId):	Fetches Pokémon stats.
+
+## TradingContractCW1
+
+### Main Functions
+- listCard(uint256 tokenId, uint256 price):
+Lists an NFT for a fixed price sale. Ensures the caller is the NFT owner, transfers NFT to the contract, stores the listing, and emits an event.
+
+- startAuction(uint256 tokenId, uint256 startingBid, uint256 duration):
+Starts an auction for an NFT. Transfers NFT to the contract, sets the starting bid and auction duration, and emits an event.
+
+- placeBid(uint256 tokenId):
+Places a bid on an active auction. Ensures auction is active, verifies bid amount, refunds previous highest bidder, updates auction data, and emits an event.
+
+- cancelFixedPriceListing(uint256 tokenId):
+Cancels a fixed-price listing. Ensures the caller is the NFT owner, transfers NFT back, removes the listing, and emits an event.
+
+- buyCard(uint256 tokenId):
+Purchases an NFT from a fixed-price listing. Ensures the NFT is listed, verifies the payment amount, transfers NFT ownership, sends ETH to the seller, and emits an event.
+
+- finalizeAuction(uint256 tokenId):
+Finalizes an auction after it ends. Transfers NFT to the highest bidder, sends ETH to the seller, refunds previous bidders, and emits an event.
+
+- pause():
+(imported from openzeppelin Ownable) Pauses trading functions, only the owner can pause contract operations.
+
+- unpause():
+(imported from openzeppelin Ownable) Resumes trading functions, only the owner can unpause contract operations.
+
+### Execution Flow
+- listNFT(tokenId, price):	Owner lists an NFT for sale.
+- approve(address(this), tokenId):	The owner approves the contract to transfer their NFT.
+- buyNFT(tokenId):	Buyer purchases the NFT by sending ETH.
+- safeTransferFrom(owner, buyer, tokenId):	NFT ownership is transferred to the buyer.
+- transfer(seller, msg.value):	ETH is transferred to the seller.
+- cancelListing(tokenId):	Owner removes the NFT from sale.
 
 # Frontend
 # Role Based UI Access
