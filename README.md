@@ -14,6 +14,9 @@ Both smart contracts use ^0.8.28 which will remain compatible with future versio
 ## Pinata
 We use **Pinata** to store NFT images securely on **IPFS**, ensuring decentralized and tamper-proof storage. To prevent **CORS issues**, we utilize a **proxy server** that acts as an intermediary, allowing stable communication between our React frontend and the IPFS network via Pinata’s API.
 
+## Metamask
+MetaMask is a software cryptocurrency wallet used to interact with the Ethereum blockchain. It allows a user to access their Ethereum wallet through a browser extension or mobile app, which can then be used to interact with decentralized applications.
+
 # Use of GenAI
 We have used GenAI to streamline our workflow, assisting with tasks like CSS editing, scripting, and implementing various functionalities, allowing us to work more efficiently and focus on core development, including contracts, core front-end functionalities and integration of components.
 
@@ -350,3 +353,25 @@ Manages global state and shared application data:
 ### **Assets & Styling**
 - **`/assets/`** – Contains static assets (images, icons, etc.).  
 - **`/styles/`** – Contains CSS/styling files for components.
+
+# Contributions
+
+## Michalis:
+- Smart Contract Development
+- Smart Contract Testing
+- Smart Contract Deployment
+- Smart Contract Integration
+- Smart Contract Security
+- Smart Contract Documentation
+- Integration of components
+
+## Stone:
+- Frontend Development
+- Frontend Testing
+- Frontend Documentation
+- Frontend Security
+- Frontend Optimization
+- Frontend Deployment
+- Integration of components
+
+During integration of components, we worked together to ensure the full understanding of the frontend and backend, ensure all components are working as intended.
