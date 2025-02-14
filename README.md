@@ -100,3 +100,35 @@ npm run dev
 ```
 
 The app should now be live at **http://localhost:5173/**.
+<<<<<<< Updated upstream
+=======
+
+
+# User Manual
+Main page, you should login first via metamask before you can interect with the nfts.
+There is a search bar in the header, allow you to pinpoint pokemon you like
+There is a filter on the left, you will be ablve to filter the properties of the nfts to find the one you liek
+
+In the nft display area, you can see 
+
+
+
+
+# Security Considerations
+
+# Backend
+
+# Frontend
+# Role Based UI Access
+-Depending on the account you are accessing from, you will be able to see only the nfts that you are meant to see
+-Action is also account based, you will only be able to list, cancel list, auction, finalize auction if you are the seller.
+
+# Prevent Injection Attack
+-In search bar, we santised the input to prevent injection attacks.
+-The other filters only allows numbers.
+
+# Strict Price input to prevent overflow
+-Min price 0.001, Max price 10000.
+
+# 
+>>>>>>> Stashed changes
