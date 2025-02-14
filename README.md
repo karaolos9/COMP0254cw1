@@ -360,6 +360,7 @@ Manages global state and shared application data:
 - Smart Contract Development
 - Smart Contract Testing
 - Smart Contract Deployment
+- Frontend Deployment
 - Smart Contract Integration
 - Smart Contract Security
 - Smart Contract Documentation
@@ -371,6 +372,7 @@ Manages global state and shared application data:
 - Frontend Documentation
 - Frontend Security
 - Frontend Optimization
+- Smart Contract Deployment
 - Frontend Deployment
 - Integration of components
 
