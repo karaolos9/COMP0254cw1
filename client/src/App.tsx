@@ -1,6 +1,7 @@
 import './App.css'
 import { MetaMaskUIProvider } from "@metamask/sdk-react-ui"
-import type { SDKProvider } from "@metamask/sdk";
+import { useSDK } from "@metamask/sdk-react";
+import type { SDKProvider, MetaMaskSDK } from "@metamask/sdk";
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { ethers } from "ethers";
 import { fetchPinataItems } from './api/pinataApi';
@@ -89,8 +90,7 @@ declare global {
 }
 
 function AppContent() {
-  // const navigate = useNavigate();
-  // const { sdk } = useSDK();
+  const { sdk, connected, connecting, provider, chainId, ready } = useSDK();
   const { addToCart, removeFromCart, cartItems } = useCart();
 
   // Wallet State Management
@@ -216,65 +216,46 @@ function AppContent() {
 
     setIsConnecting(true);
     try {
-      // Force MetaMask to show the account selection popup
-      await window.ethereum.request({
-        method: 'wallet_requestPermissions',
-        params: [{ eth_accounts: {} }]
-      });
-
-      const accounts = await window.ethereum.request({
+      // Request accounts
+      const accounts = await window.ethereum!.request({
         method: 'eth_requestAccounts'
       }) as string[];
 
-      if (accounts && accounts.length > 0) {
-        const account = accounts[0];
-        setAccount(account);
-        setIsConnected(true);
-
-        // Switch to local Hardhat network if needed
-        try {
-          await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: NETWORK_CONFIG.chainId }],
-          });
-        } catch (switchError: any) {
-          // This error code indicates that the local Hardhat network has not been added to MetaMask
-          if (switchError.code === 4902) {
-            try {
-              await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [NETWORK_CONFIG],
-              });
-            } catch (addError) {
-              console.error('Error adding local Hardhat network:', addError);
-              setToastMessage('Failed to add local Hardhat network to MetaMask');
-              setToastType('error');
-              setShowToast(true);
-              return;
-            }
-          } else {
-            throw switchError;
-          }
-        }
-
-        setToastMessage('Wallet connected successfully');
-        setToastType('success');
-        setShowToast(true);
-        cartItems.forEach(item => removeFromCart(item.id));
-
-        // Store connection state
-        localStorage.setItem('walletConnected', 'true');
-        localStorage.setItem('walletAddress', account);
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts returned from MetaMask');
       }
+
+      const account = accounts[0];
+      
+      // Set account and connection state
+      setAccount(account);
+      setIsConnected(true);
+      localStorage.setItem('walletConnected', 'true');
+      localStorage.setItem('walletAddress', account);
+
+      // Clear cart and show success message
+      cartItems.forEach(item => removeFromCart(item.id));
+      setToastMessage('Wallet connected successfully');
+      setToastType('success');
+      setShowToast(true);
+      
     } catch (error: any) {
-      console.error('Error connecting wallet:', error);
+      console.error('Connection error:', error);
       let errorMessage = 'Error connecting wallet';
       
       if (error.code === 4001) {
         errorMessage = 'You rejected the connection request';
-      } else if (error.message.includes('already pending')) {
+      } else if (error.message?.includes('already pending')) {
         errorMessage = 'Connection request already pending. Check MetaMask';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
+      
+      // Reset connection state on error
+      setAccount(null);
+      setIsConnected(false);
+      localStorage.removeItem('walletConnected');
+      localStorage.removeItem('walletAddress');
       
       setToastMessage(errorMessage);
       setToastType('error');
@@ -326,8 +307,9 @@ function AppContent() {
     }
   };
 
-  // Check for existing connection on mount
+  // Update useEffect for connection status
   useEffect(() => {
+    // Check for existing connection on mount
     const checkConnection = async () => {
       if (checkIfMetaMaskInstalled()) {
         try {
@@ -335,7 +317,7 @@ function AppContent() {
           const storedAddress = localStorage.getItem('walletAddress');
 
           if (wasConnected && storedAddress) {
-            const accounts = await window.ethereum.request({ 
+            const accounts = await window.ethereum!.request({ 
               method: 'eth_accounts' 
             }) as string[];
             
@@ -357,10 +339,8 @@ function AppContent() {
     };
 
     checkConnection();
-  }, []);
 
-  // Update event handlers with proper types
-  useEffect(() => {
+    // Set up event listeners
     if (window.ethereum) {
       const handleAccountsChanged = (accounts: string[]) => {
         if (accounts.length === 0) {
@@ -386,87 +366,43 @@ function AppContent() {
         disconnectWallet();
       };
 
-      window.ethereum.on('accountsChanged', handleAccountsChanged as (...args: unknown[]) => void);
-      window.ethereum.on('chainChanged', handleChainChanged as (...args: unknown[]) => void);
-      window.ethereum.on('disconnect', handleDisconnect as (...args: unknown[]) => void);
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+      window.ethereum.on('disconnect', handleDisconnect);
 
       return () => {
         if (window.ethereum) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged as (...args: unknown[]) => void);
-          window.ethereum.removeListener('chainChanged', handleChainChanged as (...args: unknown[]) => void);
-          window.ethereum.removeListener('disconnect', handleDisconnect as (...args: unknown[]) => void);
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+          window.ethereum.removeListener('chainChanged', handleChainChanged);
+          window.ethereum.removeListener('disconnect', handleDisconnect);
         }
       };
     }
   }, [account]);
 
-  // Get Account Balance
-  const getBalance = async () => {
-    if (account && window.ethereum) {
-      try {
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const balance = await provider.getBalance(account);
-        setBalance(ethers.formatEther(balance));
-      } catch (error) {
-        console.error('Error fetching balance:', error);
-        setBalance('Error');
-      }
-    }
-  };
-
-  // Update useEffect to call getBalance
+  // Update useEffect to use SDK provider
   useEffect(() => {
-    if (account) {
+    if (connected && provider) {
+      const ethersProvider = new ethers.BrowserProvider(provider as any);
+      const getBalance = async () => {
+        if (account) {
+          try {
+            const balance = await ethersProvider.getBalance(account);
+            setBalance(ethers.formatEther(balance));
+          } catch (error) {
+            console.error('Error fetching balance:', error);
+            setBalance('Error');
+          }
+        }
+      };
+      
       getBalance();
-      
-      // Set up interval to update balance periodically
-      const interval = setInterval(getBalance, 10000); // Update every 10 seconds
-      
+      const interval = setInterval(getBalance, 10000);
       return () => clearInterval(interval);
     } else {
       setBalance(null);
     }
-  }, [account]);
-
-  // Add event listener for chain/network changes
-  useEffect(() => {
-    if (window.ethereum) {
-      window.ethereum.on('chainChanged', () => {
-        if (account) getBalance();
-      });
-      
-      window.ethereum.on('accountsChanged', () => {
-        if (account) getBalance();
-      });
-    }
-  }, [account]);
-
-  /* Listeners */
-  const handleAccountsChanged = (accounts: string[]) => {
-    if (accounts.length > 0) {
-      setAccount(accounts[0]);
-      setIsConnected(true);
-    } else {
-      setAccount(null);
-      setIsConnected(false);
-    }
-  };
-
-  useEffect(() => {
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', (accounts: unknown) => {
-        if (Array.isArray(accounts)) {
-          handleAccountsChanged(accounts as string[]);
-        }
-      });
-    }
-
-    return () => {
-      if (window.ethereum) {
-        window.ethereum.removeListener('accountsChanged', () => {});
-      }
-    };
-  }, []);
+  }, [connected, provider, account]);
 
   // Initialization
   useEffect(() => {
@@ -1547,7 +1483,11 @@ function App() {
       sdkOptions={{
         dappMetadata: {
           name: "Pokemon NFT Trading Site",
+          url: window.location.origin,
         },
+        checkInstallationImmediately: false,
+        preferDesktop: true,
+        useDeeplink: false,
       }}
     >
       <AppContent />
