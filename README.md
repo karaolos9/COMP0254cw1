@@ -132,8 +132,6 @@ Main page, you should login first via metamask before you can interect with the 
 There is a search bar in the header, allow you to pinpoint pokemon you like
 There is a filter on the left, you will be ablve to filter the properties of the nfts to find the onw you liek
 
-
-
 # Security Considerations
 
 ## PokemonNFT Security
@@ -175,7 +173,21 @@ Ensures safe refunding of previous bidders when a new bid is placed in placeBid(
 - Pausability:
 The contract includes pause and unpause functions (pause() and unpause()) that allow the contract owner to halt all trading activities in case of an exploit or security breach.
 
-# Backend
+## Frontend Security
+
+- Role Based UI Access
+The interface dynamically adjusts based on the connected wallet, ensuring users only see NFTs relevant to their account. Actions such as listing, canceling a listing, initiating an auction, and finalizing an auction are restricted to the original seller, preventing unauthorized modifications.
+
+- Injection Attack Prevention
+The search bar sanitizes user input to prevent injection attacks, ensuring safe and secure searches. Numeric filters are strictly enforced, allowing only numbers to maintain data integrity in the filter section.
+
+- Strict Price input to prevent overflow
+Price inputs are constrained within a safe range, with a minimum price of 0.001 ETH and a maximum price of 10,000 ETH to prevent value overflow.
+
+- Emergency Stop
+A pause functionality is implemented at the contract level, allowing administrators to temporarily halt transactions in case of security threats or unforeseen issues.
+
+# Backend Structure Overview
 
 ## PokemonNFT
 
@@ -237,16 +249,47 @@ Finalizes an auction after it ends. Transfers NFT to the highest bidder, sends E
 - transfer(seller, msg.value):	ETH is transferred to the seller.
 - cancelListing(tokenId):	Owner removes the NFT from sale.
 
-# Frontend
-# Role Based UI Access
--Depending on the account you are accessing from, you will be able to see only the nfts that you are meant to see
--Action is also account based, you will only be able to list, cancel list, auction, finalize auction if you are the seller.
+# Frontend Structure Overview
 
-# Prevent Injection Attack
--In search bar, we santised the input to prevent injection attacks.
--The other filters only allows numbers.
+---
 
-# Strict Price input to prevent overflow
--Min price 0.001, Max price 10000.
+## **Main Application Files**
+- **`main.tsx`** – The entry point of the application that renders the root React component.  
+- **`App.tsx`** – The main application component containing core logic and routing.  
+- **`App.css`** – Main application styles.  
+- **`index.css`** – Global CSS styles.  
+- **`config.js`** – Configuration file containing environment variables and contract addresses.  
 
-# Pausing 
+---
+
+## **Core Directories**
+### **API Integration (`/api/`)**
+- **`pinataApi.ts`** – Handles interactions with the Pinata IPFS service for NFT metadata storage.  
+
+### **Components (`/components/`)**
+Modular and reusable UI components for the application:  
+- **`InlineProductDetails.tsx`** – Displays detailed product information inline. As well as handle cancel listing and bid placing.
+- **`AuctionModal.tsx`** – Modal for auction-related actions.  
+- **`ListingModal.tsx`** – Modal for listing NFTs for sale.  
+- **`CartPanel.tsx`** – Shopping cart panel component.  
+- **`SearchBar.tsx`** – Search functionality component.  
+- **`Toast.tsx`** – Notification component.  
+- **`PinataImage.tsx`** – Displays images from Pinata IPFS.  
+
+### **Contract Integration (`/contracts/`)**
+- **`abis.ts`** – Contains smart contract ABIs for interacting with NFT and Trading contracts.  
+
+### **Context (`/context/`)**
+Manages global state and shared application data:  
+- **`CartContext.tsx`** – React context for managing shopping cart state across components.  
+
+### **Blockchain & Web3 (`/services/`)**
+- **`web3Service.ts`** – Handles Web3 interactions and blockchain connectivity.  
+
+### **Types & Interfaces (`/types/`)**
+- **`index.ts`** – TypeScript type definitions used throughout the application.  
+- **`types.ts` (in root)** – Additional TypeScript interfaces and types.  
+
+### **Assets & Styling**
+- **`/assets/`** – Contains static assets (images, icons, etc.).  
+- **`/styles/`** – Contains CSS/styling files for components.

@@ -1,9 +1,28 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import type { Plugin } from 'vite'
+
+// Create a plugin to handle MetaMask SDK debug requests
+const handleMetaMaskDebug = (): Plugin => ({
+  name: 'handle-metamask-debug',
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      if (req.url?.startsWith('/debug')) {
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify({ status: 'ok' }));
+        return;
+      }
+      next();
+    });
+  },
+});
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    handleMetaMaskDebug()
+  ],
   define: {
     global: 'globalThis',
     'process.env.METAMASK_SDK_DEBUG': false,
@@ -17,22 +36,6 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/pinata/, ''),
         headers: {
           'Access-Control-Allow-Origin': '*'
-        }
-      },
-      '/debug': {
-        target: 'http://localhost:5173',
-        changeOrigin: true,
-        secure: false,
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Sending Request to the Target:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
-          });
         }
       }
     }

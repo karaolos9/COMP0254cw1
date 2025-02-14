@@ -914,36 +914,6 @@ function AppContent() {
     }
   };
 
-  const handleCancelListing = async (e: React.MouseEvent, item: PinataItem) => {
-    e.preventDefault();
-    if (!window.ethereum || !item.tokenId) return;
-
-    try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      
-      const tradingContract = new ethers.Contract(
-        CONTRACT_ADDRESSES.TRADING_CONTRACT,
-        CONTRACT_ABIS.TRADING_CONTRACT,
-        signer
-      );
-
-      const tx = await tradingContract.cancelListing(item.tokenId);
-      await tx.wait();
-
-      await fetchListedNFTs();
-      
-      setToastMessage('Listing cancelled successfully');
-      setToastType('success');
-      setShowToast(true);
-    } catch (error) {
-      console.error('Error cancelling listing:', error);
-      setToastMessage('Error cancelling listing');
-      setToastType('error');
-      setShowToast(true);
-    }
-  };
-
   // Add this useEffect to reload items when view changes
   useEffect(() => {
     if (isConnected && currentView === 'profile') {

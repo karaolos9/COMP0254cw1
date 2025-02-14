@@ -254,30 +254,77 @@ export default function InlineProductDetails({
 
     setIsCancelling(true);
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      
-      const tradingContract = new ethers.Contract(
-        CONTRACT_ADDRESSES.TRADING_CONTRACT,
-        CONTRACT_ABIS.TRADING_CONTRACT,
-        signer
-      );
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        
+        const tradingContract = new ethers.Contract(
+            CONTRACT_ADDRESSES.TRADING_CONTRACT,
+            CONTRACT_ABIS.TRADING_CONTRACT,
+            signer
+        );
 
-      const tx = await tradingContract.cancelFixedPriceListing(tokenId);
-      await tx.wait();
+        // First check the listing status
+        const listing = await tradingContract.listings(tokenId);
+        console.log('Current listing status:', {
+            seller: listing.seller,
+            isActive: listing.isActive,
+            isAuction: listing.isAuction
+        });
 
-      setToastMessage('Listing cancelled successfully');
-      setToastType('success');
-      setShowToast(true);
-      setShowCancelSuccessPopup(true);
-      
-    } catch (error) {
-      console.error('Error cancelling listing:', error);
-      setToastMessage('Error cancelling listing');
-      setToastType('error');
-      setShowToast(true);
+        // Check if caller is the seller
+        const signerAddress = await signer.getAddress();
+        console.log('Transaction details:', {
+            caller: signerAddress,
+            tokenId: tokenId,
+            isSeller: listing.seller.toLowerCase() === signerAddress.toLowerCase()
+        });
+
+        // Check NFT ownership
+        const nftContract = new ethers.Contract(
+            CONTRACT_ADDRESSES.NFT_CONTRACT,
+            CONTRACT_ABIS.NFT_CONTRACT,
+            provider
+        );
+        const nftOwner = await nftContract.ownerOf(tokenId);
+        console.log('NFT ownership:', {
+            owner: nftOwner,
+            shouldBeContract: CONTRACT_ADDRESSES.TRADING_CONTRACT
+        });
+
+        const tx = await tradingContract.cancelFixedPriceListing(tokenId);
+        console.log('Transaction sent:', tx);
+        const receipt = await tx.wait();
+        console.log('Transaction receipt:', receipt);
+
+        setToastMessage('Listing cancelled successfully');
+        setToastType('success');
+        setShowToast(true);
+        setShowCancelSuccessPopup(true);
+        
+    } catch (error: any) {
+        console.error('Error cancelling listing:', error);
+        
+        let errorMessage = 'Error cancelling listing: ';
+        
+        if (error.message?.includes('Unauthorized')) {
+            errorMessage += 'You are not the seller of this listing';
+        } else if (error.message?.includes('UseAuctionFunctions')) {
+            errorMessage += 'This is an auction listing, cannot use cancel listing function';
+        } else if (error.message?.includes('InactiveListing')) {
+            errorMessage += 'This listing is not active';
+        } else if (error.message?.includes('InvalidNFT')) {
+            errorMessage += 'NFT is not owned by the trading contract';
+        } else if (error.message?.includes('user rejected')) {
+            errorMessage += 'Transaction was rejected by user';
+        } else {
+            errorMessage += error.reason || error.message || 'Unknown error occurred';
+        }
+        
+        setToastMessage(errorMessage);
+        setToastType('error');
+        setShowToast(true);
     } finally {
-      setIsCancelling(false);
+        setIsCancelling(false);
     }
   };
 
