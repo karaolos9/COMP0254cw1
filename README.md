@@ -131,4 +131,7 @@ In the nft display area, you can see
 -Min price 0.001, Max price 10000.
 
 # 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
