@@ -539,17 +539,17 @@ function AppContent() {
     };
   }, []);
 
-  // Update type handling in state updates
-  const setNftItemsWithTypes = (items: PinataItem[]) => {
-    setNftItems(items.map(item => ({
-      ...item,
-      price: item.price || undefined,
-      seller: item.seller || undefined,
-      tokenId: item.tokenId || undefined,
-      isListed: item.isListed || false,
-      isAuction: item.isAuction || false
-    })));
-  };
+  // // Update type handling in state updates
+  // const setNftItemsWithTypes = (items: PinataItem[]) => {
+  //   setNftItems(items.map(item => ({
+  //     ...item,
+  //     price: item.price || undefined,
+  //     seller: item.seller || undefined,
+  //     tokenId: item.tokenId || undefined,
+  //     isListed: item.isListed || false,
+  //     isAuction: item.isAuction || false
+  //   })));
+  // };
 
   // Update the checkNFTOwnership function to handle types properly
   const checkNFTOwnership = async (items: PinataItem[]) => {

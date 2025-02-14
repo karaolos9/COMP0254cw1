@@ -314,9 +314,20 @@ export default function InlineProductDetails({
   };
 
   const handlePlaceBid = async () => {
-    if (!window.ethereum || !bidAmount) return;
-
     try {
+      // Add validation before placing the bid
+      const bidNum = parseFloat(bidAmount);
+      if (isNaN(bidNum)) {
+        throw new Error('Please enter a valid bid amount');
+      }
+      if (bidNum < 0.001) {
+        throw new Error('Bid must be at least 0.001 ETH');
+      }
+      if (bidNum > 10000) {
+        throw new Error('Bid cannot exceed 10000 ETH');
+      }
+
+      if (!window.ethereum || !bidAmount) return;
       setIsPlacingBid(true);
       setShowBidOverlay(true);
       const provider = new ethers.BrowserProvider(window.ethereum);
@@ -832,6 +843,7 @@ export default function InlineProductDetails({
                             onChange={(e) => setBidAmount(e.target.value)}
                             placeholder="Enter bid amount in ETH"
                             min="0.001"
+                            max="10000"
                             step="0.001"
                             disabled={isPlacingBid}
                           />

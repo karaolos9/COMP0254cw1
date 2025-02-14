@@ -33,8 +33,20 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
   };
 
   const handleList = async () => {
-    setIsListing(true);
     try {
+      // Add validation before starting the listing process
+      const priceNum = parseFloat(price);
+      if (isNaN(priceNum)) {
+        throw new Error('Please enter a valid price');
+      }
+      if (priceNum < 0.001) {
+        throw new Error('Price must be at least 0.001 ETH');
+      }
+      if (priceNum > 10000) {
+        throw new Error('Price cannot exceed 10000 ETH');
+      }
+
+      setIsListing(true);
       if (!window.ethereum || !price) return;
       
       const provider = new ethers.BrowserProvider(window.ethereum);
@@ -172,11 +184,14 @@ const ListingModal: React.FC<ListingModalProps> = ({ onClose, ipfsHash, onSucces
               <>
                 <div className="price-input-container">
                   <input
-                    type="text"
+                    type="number"
                     value={price}
                     onChange={handlePriceChange}
                     placeholder="Enter price in ETH"
                     className="price-input"
+                    min="0.001"
+                    max="10000"
+                    step="0.001"
                   />
                   <span className="eth-label">ETH</span>
                 </div>

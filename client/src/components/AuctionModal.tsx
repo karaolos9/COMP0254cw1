@@ -62,21 +62,33 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
   };
 
   const handleStartAuction = async () => {
-    if (!window.ethereum || !startingBid) return;
-
-    // Convert days and hours to numbers, defaulting to 0 if empty
-    const daysNum = parseInt(days) || 0;
-    const hoursNum = parseInt(hours) || 0;
-
-    // Check if at least one duration field is greater than 0
-    if (daysNum === 0 && hoursNum === 0) {
-      setToastMessage('Duration must be greater than 0');
-      setToastType('error');
-      setShowToast(true);
-      return;
-    }
-
     try {
+      // Add validation before starting the auction process
+      const bidNum = parseFloat(startingBid);
+      if (isNaN(bidNum)) {
+        throw new Error('Please enter a valid starting auction price');
+      }
+      if (bidNum < 0.001) {
+        throw new Error('Starting auction price must be at least 0.001 ETH');
+      }
+      if (bidNum > 10000) {
+        throw new Error('Starting auction price cannot exceed 10000 ETH');
+      }
+
+      if (!window.ethereum || !startingBid) return;
+
+      // Convert days and hours to numbers, defaulting to 0 if empty
+      const daysNum = parseInt(days) || 0;
+      const hoursNum = parseInt(hours) || 0;
+
+      // Check if at least one duration field is greater than 0
+      if (daysNum === 0 && hoursNum === 0) {
+        setToastMessage('Duration must be greater than 0');
+        setToastType('error');
+        setShowToast(true);
+        return;
+      }
+
       setIsStarting(true);
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
@@ -247,11 +259,14 @@ const AuctionModal: React.FC<AuctionModalProps> = ({
               <>
                 <div className="price-input-container">
                   <input
-                    type="text"
+                    type="number"
                     value={startingBid}
                     onChange={handleStartingBidChange}
                     placeholder="Enter starting bid in ETH"
                     className="price-input"
+                    min="0.001"
+                    max="10000"
+                    step="0.001"
                   />
                   <span className="eth-label">ETH</span>
                 </div>
