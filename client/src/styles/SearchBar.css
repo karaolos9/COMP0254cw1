@@ -1,0 +1,176 @@
+.search-section {
+  position: relative;
+  /* margin-right: 140px; */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-section i {
+  color: #1e3a8a;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+}
+
+.search-container {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 2px solid #1e3a8a;  /* Blue border */
+  border-radius: 20px;        /* Round corners */
+  overflow: hidden;
+  transition: all 0.3s ease;
+  padding: 0 15px;
+}
+
+.search-container:focus-within {
+  box-shadow: 0 0 5px rgba(37, 99, 235, 0.3);
+  border-color: #2563eb;
+}
+
+.search-container i {
+  color: #1e3a8a;
+  font-size: 16px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  width: 250px;
+  padding: 8px 15px;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  color: #1e3a8a;     /* Blue text */
+}
+
+.search-input::placeholder {
+  color: #6B7280;
+}
+
+.search-button {
+  background: none;
+  border: none;
+  padding: 8px 15px;
+  cursor: pointer;
+  color: #1e3a8a;     /* Blue icon */
+  transition: color 0.3s ease;
+}
+
+.search-button:hover {
+  color: #2563eb;
+}
+
+/* New cart icon button styles */
+.cart-icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.cart-icon-button:hover {
+  background-color: var(--secondary-color);
+}
+
+.cart-icon-button i {
+  color: var(--background-color);
+  font-size: 1.2rem;
+}
+
+.type-filter {
+  position: relative;
+  margin-top: 8px;
+}
+
+.type-filter-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.type-dropdown-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #E3E6F3;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #606063;
+}
+
+.clear-types-button {
+  padding: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #606063;
+}
+
+.type-dropdown-content {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 200px;
+  background: white;
+  border: 1px solid #E3E6F3;
+  border-radius: 4px;
+  margin-top: 4px;
+  padding: 8px;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.type-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.type-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  background: #E3E6F3;
+}
+
+/* Pokemon type colors */
+.type-badge.fire { background-color: #EE8130; }
+.type-badge.water { background-color: #6390F0; }
+.type-badge.electric { background-color: #F7D02C; }
+.type-badge.grass { background-color: #7AC74C; }
+.type-badge.ice { background-color: #96D9D6; }
+.type-badge.fighting { background-color: #C22E28; }
+.type-badge.poison { background-color: #A33EA1; }
+.type-badge.ground { background-color: #E2BF65; }
+.type-badge.flying { background-color: #A98FF3; }
+.type-badge.psychic { background-color: #F95587; }
+.type-badge.bug { background-color: #A6B91A; }
+.type-badge.rock { background-color: #B6A136; }
+.type-badge.ghost { background-color: #735797; }
+.type-badge.dragon { background-color: #6F35FC; }
+.type-badge.dark { background-color: #705746; }
+.type-badge.steel { background-color: #B7B7CE; }
+.type-badge.fairy { background-color: #D685AD; }
+.type-badge.normal { background-color: #A8A878; }
+
+/* Add Light type color */
+.type-badge.light { 
+  background-color: #FFF5D6; 
+  color: #666; /* Darker text for better contrast */
+  border: 1px solid #FFE5A3;
+} 
