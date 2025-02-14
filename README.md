@@ -194,14 +194,14 @@ The owner can pause/unpause contract functions.
 Only the contract owner can mint new Pokémon.
 
 ### Execution Flow:
-cardIdCounter: Tracks total NFTs minted (each new card gets a sequential ID).
-PokemonType: Defines all possible Pokemon types (Normal, Fire, Water, etc).
-mintCard():	Owner mints an NFT to a user.
-_mint():	New NFT is assigned to the recipient.
-_setTokenURI():	Stores metadata URI for the NFT.
-pokemonData[tokenId]:	Saves Pokémon stats.
-CardMinted event:	Logs the NFT creation on-chain.
-getPokemonStats(tokenId):	Fetches Pokémon stats.
+- cardIdCounter: Tracks total NFTs minted (each new card gets a sequential ID).
+- PokemonType: Defines all possible Pokemon types (Normal, Fire, Water, etc).
+- mintCard():	Owner mints an NFT to a user.
+- _mint():	New NFT is assigned to the recipient.
+- _setTokenURI():	Stores metadata URI for the NFT.
+- pokemonData[tokenId]:	Saves Pokémon stats.
+- CardMinted event:	Logs the NFT creation on-chain.
+- getPokemonStats(tokenId):	Fetches Pokémon stats.
 
 ## TradingContractCW1
 
@@ -231,12 +231,12 @@ Finalizes an auction after it ends. Transfers NFT to the highest bidder, sends E
 (imported from openzeppelin Ownable) Resumes trading functions, only the owner can unpause contract operations.
 
 ### Execution Flow
-listNFT(tokenId, price):	Owner lists an NFT for sale.
-approve(address(this), tokenId):	The owner approves the contract to transfer their NFT.
-buyNFT(tokenId):	Buyer purchases the NFT by sending ETH.
-safeTransferFrom(owner, buyer, tokenId):	NFT ownership is transferred to the buyer.
-transfer(seller, msg.value):	ETH is transferred to the seller.
-cancelListing(tokenId):	Owner removes the NFT from sale.
+- listNFT(tokenId, price):	Owner lists an NFT for sale.
+- approve(address(this), tokenId):	The owner approves the contract to transfer their NFT.
+- buyNFT(tokenId):	Buyer purchases the NFT by sending ETH.
+- safeTransferFrom(owner, buyer, tokenId):	NFT ownership is transferred to the buyer.
+- transfer(seller, msg.value):	ETH is transferred to the seller.
+- cancelListing(tokenId):	Owner removes the NFT from sale.
 
 # Frontend
 # Role Based UI Access
