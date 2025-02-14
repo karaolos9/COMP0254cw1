@@ -251,5 +251,53 @@ export const pokemonList: PokemonMintData[] = [
         special: 90,
         pokemonType: 2  // WATER type
       }
+    },
+    {
+      name: "Frostrax",
+      ipfsHash: "bafybeialb6rdzzlaicpjizat4axmujmi4dvbad23wum4vi562n6td5vtpi",
+      stats: {
+        hp: 80,
+        attack: 75,
+        defense: 85,
+        speed: 90,
+        special: 95,
+        pokemonType: 5  // ICE type
+      }
+    },
+    {
+      name: "Oblivionis",
+      ipfsHash: "bafybeigglifsz3ixgtrpv56lfmlg5iebfhbyyy2hb3ab27sfgly4mfvoeq",
+      stats: {
+        hp: 85,
+        attack: 90,
+        defense: 80,
+        speed: 75,
+        special: 100,
+        pokemonType: 15  // DARK type
+      }
+    },
+    {
+      name: "Blazebane",
+      ipfsHash: "bafybeichs77uxwnxo3lixxzslubzvzteg2b4wcedyahfamgaqqrqo6gqm4",
+      stats: {
+        hp: 75,
+        attack: 95,
+        defense: 70,
+        speed: 85,
+        special: 90,
+        pokemonType: 1  // FIRE type
+      }
+    },
+    {
+      name: "Mechard",
+      ipfsHash: "bafybeiflzwhotqitalmncdy72wjmlw72funwvjg6bk2hlsg7y3ivqh5dl4",
+      stats: {
+        hp: 90,
+        attack: 80,
+        defense: 95,
+        speed: 65,
+        special: 85,
+        pokemonType: 16  // STEEL type
+      }
     }
   ];

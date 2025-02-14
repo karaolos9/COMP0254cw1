@@ -6,10 +6,10 @@ This project is a decentralized application (dApp) for Pokémon NFT Trading. It 
 Both smart contracts use ^0.8.28 which will remain compatible with future versions of solidity (0.8.x).
 
 ## React
-React: ^18.3.1 – Frontend framework for building a dynamic UI.
-React DOM: ^18.3.1 – Handles rendering React components in the DOM.
-TypeScript: ~5.6.2 – Statically typed language for safer and more scalable development.
-Vite: ^6.0.5 – A fast and optimized build tool for React projects.
+- React: ^18.3.1 – Frontend framework for building a dynamic UI.
+- React DOM: ^18.3.1 – Handles rendering React components in the DOM.
+- TypeScript: ~5.6.2 – Statically typed language for safer and more scalable development.
+- Vite: ^6.0.5 – A fast and optimized build tool for React projects.
 
 ## Pinata
 We use **Pinata** to store NFT images securely on **IPFS**, ensuring decentralized and tamper-proof storage. To prevent **CORS issues**, we utilize a **proxy server** that acts as an intermediary, allowing stable communication between our React frontend and the IPFS network via Pinata’s API.
