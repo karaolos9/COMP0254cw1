@@ -1,12 +1,15 @@
 # CW1 dApp Project Overview
-This project is a dApp for Pokémons NFT Trading. It has two Solidity contracts, and React as frontend.
+This project is a decentralized application (dApp) for Pokémon NFT Trading. It enables users to trade Pokémon NFTs securely on the blockchain. The platform integrates Solidity smart contracts for handling transactions, a React frontend, and MetaMask for wallet authentication. Images are stored securely using Pinata (IPFS) for decentralized file storage.
 
 # Technical Overview
 ## Solidity
 Both smart contracts use ^0.8.28 which will remain compatible with future versions of solidity (0.8.x).
 
 ## React
-
+React: ^18.3.1 – Frontend framework for building a dynamic UI.
+React DOM: ^18.3.1 – Handles rendering React components in the DOM.
+TypeScript: ~5.6.2 – Statically typed language for safer and more scalable development.
+Vite: ^6.0.5 – A fast and optimized build tool for React projects.
 
 ## Pinata
 We use **Pinata** to store NFT images securely on **IPFS**, ensuring decentralized and tamper-proof storage. To prevent **CORS issues**, we utilize a **proxy server** that acts as an intermediary, allowing stable communication between our React frontend and the IPFS network via Pinata’s API.
@@ -128,9 +131,13 @@ The app should now be live at **http://localhost:5173/**.
 
 
 # User Manual
-Main page, you should login first via metamask before you can interect with the nfts.
-There is a search bar in the header, allow you to pinpoint pokemon you like
-There is a filter on the left, you will be ablve to filter the properties of the nfts to find the onw you liek
+Main page, you should login first via metamask by clicking connect before you can properly interact with the nfts.
+
+On the heade There is a search bar in the header, allow you to pinpoint pokemon you like. A shopping cart, storing the nfts you have added to it, and wallet button we used earlier, as well as profile page, allowing you to access nfts you collected once logged in.
+
+There is a filter on the left, you will be ablve to filter the properties of the nfts to find the onw you liek, including status, Owner, price, Stats and Types. As well as sorting from price low to high and high to low.
+
+On the nft token display area
 
 # Security Considerations
 
@@ -175,16 +182,16 @@ The contract includes pause and unpause functions (pause() and unpause()) that a
 
 ## Frontend Security
 
-- Role Based UI Access
+- Role Based UI Access:
 The interface dynamically adjusts based on the connected wallet, ensuring users only see NFTs relevant to their account. Actions such as listing, canceling a listing, initiating an auction, and finalizing an auction are restricted to the original seller, preventing unauthorized modifications.
 
-- Injection Attack Prevention
+- Injection Attack Prevention:
 The search bar sanitizes user input to prevent injection attacks, ensuring safe and secure searches. Numeric filters are strictly enforced, allowing only numbers to maintain data integrity in the filter section.
 
-- Strict Price input to prevent overflow
+- Strict Price Input to Prevent Overflow:
 Price inputs are constrained within a safe range, with a minimum price of 0.001 ETH and a maximum price of 10,000 ETH to prevent value overflow.
 
-- Emergency Stop
+- Emergency Stop:
 A pause functionality is implemented at the contract level, allowing administrators to temporarily halt transactions in case of security threats or unforeseen issues.
 
 # Backend Structure Overview
@@ -267,7 +274,7 @@ Finalizes an auction after it ends. Transfers NFT to the highest bidder, sends E
 - **`pinataApi.ts`** – Handles interactions with the Pinata IPFS service for NFT metadata storage.  
 
 ### **Components (`/components/`)**
-Modular and reusable UI components for the application:  
+UI components for the application:  
 - **`InlineProductDetails.tsx`** – Displays detailed product information inline. As well as handle cancel listing and bid placing.
 - **`AuctionModal.tsx`** – Modal for auction-related actions.  
 - **`ListingModal.tsx`** – Modal for listing NFTs for sale.  

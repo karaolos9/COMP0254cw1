@@ -1,7 +1,7 @@
 import './App.css'
 import { MetaMaskUIProvider } from "@metamask/sdk-react-ui"
 import { useSDK } from "@metamask/sdk-react";
-import type { SDKProvider, MetaMaskSDK } from "@metamask/sdk";
+import type { SDKProvider } from "@metamask/sdk";
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { ethers } from "ethers";
 import { fetchPinataItems } from './api/pinataApi';
@@ -16,6 +16,13 @@ import type { PinataItem as ImportedPinataItem } from './types';
 // Lazy load components
 const CartPanel = lazy(() => import('./components/CartPanel'));
 
+// Window interface to use SDKProvider
+declare global {
+  interface Window {
+    ethereum?: SDKProvider;
+  }
+}
+
 // Pinata item info
 type PinataItem = ImportedPinataItem & {
   price?: string;
@@ -24,14 +31,6 @@ type PinataItem = ImportedPinataItem & {
   isListed?: boolean;
   isAuction?: boolean;
 };
-
-// Update the Toast component props
-// interface ToastProps {
-//   message: string;
-//   isVisible: boolean;
-//   onHide: () => void;
-//   type: 'success' | 'error';
-// }
 
 // Keeps track of the current filter state
 interface FilterState {
@@ -49,6 +48,7 @@ interface FilterState {
     speed: { min: number | null; max: number | null };
     special: { min: number | null; max: number | null };
   };
+  priceSort: 'none' | 'high-to-low' | 'low-to-high';
 }
 
 // Declares the types of Pokemon types
@@ -82,15 +82,7 @@ interface NFTListing {
   isAuction: boolean;
 }
 
-// Window interface to use SDKProvider
-declare global {
-  interface Window {
-    ethereum?: SDKProvider;
-  }
-}
-
 function AppContent() {
-  const { sdk, connected, connecting, provider, chainId, ready } = useSDK();
   const { addToCart, removeFromCart, cartItems } = useCart();
 
   // Wallet State Management
@@ -132,7 +124,8 @@ function AppContent() {
       defense: { min: 0, max: 100 },
       speed: { min: 0, max: 100 },
       special: { min: 0, max: 100 }
-    }
+    },
+    priceSort: 'none'
   });
 
   // Check dropdown visibility
@@ -165,7 +158,8 @@ function AppContent() {
     owner: false,
     price: false,
     traits: false,
-    stats: false
+    stats: false,
+    priceSort: false
   });
 
   // Initialize stats inputs state
@@ -222,13 +216,13 @@ function AppContent() {
 
     setIsConnecting(true);
     try {
-      // Clear any existing connection first
+      // Clear existing connection
       localStorage.removeItem('walletConnected');
       localStorage.removeItem('walletAddress');
       setAccount(null);
       setIsConnected(false);
 
-      // Force MetaMask to show the account selection popup
+      // Account selection popup
       await window.ethereum!.request({
         method: 'wallet_requestPermissions',
         params: [{ eth_accounts: {} }]
@@ -700,7 +694,8 @@ function AppContent() {
         filters,
         account,
         searchTerm,
-        isProfileView
+        isProfileView,
+        priceSort: filters.priceSort
       });
 
       // Create quick lookup map for listed NFTs
@@ -716,7 +711,6 @@ function AppContent() {
           isListed: listedNFTsMap.has(item.ipfs_pin_hash),
           price: listing?.price,
           seller: listing?.seller,
-          // Keep the original tokenId if it exists, otherwise use the one from listing
           tokenId: item.tokenId || listing?.tokenId,
           isAuction: listing?.isAuction || false
         };
@@ -750,6 +744,35 @@ function AppContent() {
         displayItems = displayItems.filter(item => 
           item.seller?.toLowerCase() === account.toLowerCase()
         );
+      }
+
+      // Apply price sorting
+      if (filters.priceSort !== 'none') {
+        console.log('Applying price sort:', filters.priceSort);
+        const itemsBeforeSort = displayItems.map(item => ({ 
+          name: item.metadata?.name, 
+          price: item.price ? parseFloat(item.price) : 0 
+        }));
+        console.log('Before sorting:', itemsBeforeSort);
+        
+        displayItems = [...displayItems].sort((a, b) => {
+          const priceA = a.price ? parseFloat(a.price) : 0;
+          const priceB = b.price ? parseFloat(b.price) : 0;
+          
+          // Place items with price 0 at the end
+          if (priceA === 0 && priceB !== 0) return 1;
+          if (priceA !== 0 && priceB === 0) return -1;
+          
+          return filters.priceSort === 'high-to-low' ? 
+            priceB - priceA : 
+            priceA - priceB;
+        });
+        
+        const itemsAfterSort = displayItems.map(item => ({ 
+          name: item.metadata?.name, 
+          price: item.price ? parseFloat(item.price) : 0 
+        }));
+        console.log('After sorting:', itemsAfterSort);
       }
 
       // Filter by Pokemon types
@@ -833,11 +856,25 @@ function AppContent() {
         console.log('Filtered items count:', displayItems.length);
       }
 
-      setFilteredItems(displayItems);
+      setFilteredItems([...displayItems]);
     };
 
     applyFilters();
-  }, [currentView, nftItems, listedNFTs, account, filters.status, filters.owner, filters.types, filters.priceRange.min, filters.priceRange.max, searchTerm, isProfileView, filters.statsRange]);
+  }, [
+    currentView, 
+    nftItems, 
+    listedNFTs, 
+    account, 
+    filters.status, 
+    filters.owner, 
+    filters.types, 
+    filters.priceRange.min, 
+    filters.priceRange.max, 
+    filters.priceSort,  // Added priceSort to dependencies
+    searchTerm, 
+    isProfileView, 
+    filters.statsRange
+  ]);
 
   // Update type selection handler
   const handleTypeSelection = (type: string) => {
@@ -1206,6 +1243,48 @@ function AppContent() {
               </div>
             )}
 
+            {/* Price Sort Filter */}
+            <div className="filter-section">
+              <h3 onClick={() => toggleSection('priceSort')}>
+                Price Sort
+                <i className={`fas fa-chevron-down ${collapsedSections.priceSort ? 'rotated' : ''}`}></i>
+              </h3>
+              <div className={`filter-content ${collapsedSections.priceSort ? 'collapsed' : 'expanded'}`}>
+                <div className="filter-option">
+                  <button
+                    className={`sort-button ${filters.priceSort === 'high-to-low' ? 'active' : ''}`}
+                    onClick={() => {
+                      console.log('Clicked high-to-low, current sort:', filters.priceSort);
+                      const newSort = filters.priceSort === 'high-to-low' ? 'none' : 'high-to-low';
+                      console.log('Setting new sort:', newSort);
+                      setFilters(prev => ({
+                        ...prev,
+                        priceSort: newSort
+                      }));
+                    }}
+                  >
+                    <i className="fas fa-sort-amount-down"></i>
+                    High to Low
+                  </button>
+                  <button
+                    className={`sort-button ${filters.priceSort === 'low-to-high' ? 'active' : ''}`}
+                    onClick={() => {
+                      console.log('Clicked low-to-high, current sort:', filters.priceSort);
+                      const newSort = filters.priceSort === 'low-to-high' ? 'none' : 'low-to-high';
+                      console.log('Setting new sort:', newSort);
+                      setFilters(prev => ({
+                        ...prev,
+                        priceSort: newSort
+                      }));
+                    }}
+                  >
+                    <i className="fas fa-sort-amount-up"></i>
+                    Low to High
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Status Filter - Allows users to filter NFTs by status, Listed or Auction*/}
             <div className="filter-section">
               <h3 onClick={() => toggleSection('status')}>
@@ -1391,7 +1470,7 @@ function AppContent() {
             {/* Traits Filter */}
             <div className="filter-section">
               <h3 onClick={() => toggleSection('traits')}>
-                Traits
+                Types
                 <i className={`fas fa-chevron-down ${collapsedSections.traits ? 'rotated' : ''}`}></i>
               </h3>
               <div className={`filter-content ${collapsedSections.traits ? 'collapsed' : 'expanded'}`}>
