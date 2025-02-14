@@ -156,6 +156,9 @@ function AppContent() {
   // Add loading state
   const [isLoading, setIsLoading] = useState(true);
 
+  // Add isContractOwner state
+  const [isContractOwner, setIsContractOwner] = useState(false);
+
   // Add state for collapsed sections
   const [collapsedSections, setCollapsedSections] = useState({
     status: false,
@@ -173,6 +176,9 @@ function AppContent() {
     speed: { min: '0', max: '100' },
     special: { min: '0', max: '100' }
   });
+
+  // Add isPaused state
+  const [isPaused, setIsPaused] = useState(false);
 
   // Store collapsed state in localStorage when it changes
   useEffect(() => {
@@ -487,18 +493,6 @@ function AppContent() {
       tradingContract.off('ListingCancelled', handleListingCancelled);
     };
   }, []);
-
-  // // Update type handling in state updates
-  // const setNftItemsWithTypes = (items: PinataItem[]) => {
-  //   setNftItems(items.map(item => ({
-  //     ...item,
-  //     price: item.price || undefined,
-  //     seller: item.seller || undefined,
-  //     tokenId: item.tokenId || undefined,
-  //     isListed: item.isListed || false,
-  //     isAuction: item.isAuction || false
-  //   })));
-  // };
 
   // Update the checkNFTOwnership function to handle types properly
   const checkNFTOwnership = async (items: PinataItem[]) => {
@@ -1010,8 +1004,101 @@ function AppContent() {
     };
   }, []);
 
+  // Add checkContractOwnership function
+  const checkContractOwnership = async () => {
+    if (!window.ethereum || !account) return;
+    
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const tradingContract = new ethers.Contract(
+        CONTRACT_ADDRESSES.TRADING_CONTRACT,
+        CONTRACT_ABIS.TRADING_CONTRACT,
+        provider
+      );
+      
+      const owner = await tradingContract.owner();
+      console.log('Contract Owner:', owner);
+      console.log('Current Account:', account);
+      console.log('Are they equal?', owner.toLowerCase() === account.toLowerCase());
+      
+      setIsContractOwner(owner.toLowerCase() === account.toLowerCase());
+    } catch (error) {
+      console.error('Error checking contract ownership:', error);
+      setIsContractOwner(false);
+    }
+  };
+
+  // Add checkContractState function
+  const checkContractState = async () => {
+    if (!window.ethereum || !account) return;
+    
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const tradingContract = new ethers.Contract(
+        CONTRACT_ADDRESSES.TRADING_CONTRACT,
+        CONTRACT_ABIS.TRADING_CONTRACT,
+        provider
+      );
+      
+      const paused = await tradingContract.paused();
+      setIsPaused(paused);
+    } catch (error) {
+      console.error('Error checking contract state:', error);
+    }
+  };
+
+  // Update useEffect to check contract state
+  useEffect(() => {
+    if (account) {
+      checkContractOwnership();
+      checkContractState();
+    } else {
+      setIsContractOwner(false);
+      setIsPaused(false);
+    }
+  }, [account]);
+
+  // Update pauseContract function to handle both pause and unpause
+  const pauseContract = async () => {
+    if (!window.ethereum || !account || !isContractOwner) return;
+    
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const tradingContract = new ethers.Contract(
+        CONTRACT_ADDRESSES.TRADING_CONTRACT,
+        CONTRACT_ABIS.TRADING_CONTRACT,
+        signer
+      );
+      
+      const tx = await tradingContract[isPaused ? 'unpause' : 'pause']();
+      await tx.wait();
+      
+      setIsPaused(!isPaused);
+      setToastMessage(`Contract ${isPaused ? 'unpaused' : 'paused'} successfully`);
+      setToastType('success');
+      setShowToast(true);
+    } catch (error) {
+      console.error('Error toggling contract state:', error);
+      setToastMessage(`Error ${isPaused ? 'unpausing' : 'pausing'} contract`);
+      setToastType('error');
+      setShowToast(true);
+    }
+  };
+
+  // Add useEffect to check ownership when account changes
+  useEffect(() => {
+    if (account) {
+      checkContractOwnership();
+    } else {
+      setIsContractOwner(false);
+    }
+  }, [account]);
+
+  // Return the App component
   return (
     <div style={{ backgroundColor: '#fff' }}>
+      {/* Header Section */}
       <section id="header">
         <div className="header-left">
           <img 
@@ -1023,8 +1110,10 @@ function AppContent() {
           />
           <h1>Pokémon NFT Trading Site</h1>
         </div>
+        {/* Search Bar */}
         <SearchBar onSearch={handleSearch} />
-      <div>
+        <div>
+        {/* Navbar */}
           <ul id="navbar">
             <button 
               className="cart-button"
@@ -1121,6 +1210,29 @@ function AppContent() {
                 <p className="wallet-address">
                   {account ? `${account.slice(0, 6)}...${account.slice(-4)}` : 'Not connected'}
                 </p>
+                {isContractOwner && (
+                  <button 
+                    className="pause-contract-button"
+                    onClick={pauseContract}
+                    style={{
+                      backgroundColor: isPaused ? '#4CAF50' : '#ff4444',
+                      color: 'white',
+                      padding: '8px 16px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      marginTop: '10px',
+                      width: '100%',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = isPaused ? '#45a049' : '#ff6666'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = isPaused ? '#4CAF50' : '#ff4444'}
+                  >
+                    {isPaused ? 'Unpause Contract' : 'Pause Contract'}
+                  </button>
+                )}
               </div>
             )}
 
@@ -1360,7 +1472,7 @@ function AppContent() {
               </div>
             </div>
           </aside>
-
+          {/* Content Display Area for NFTs */}
           <div className="content-area">
             <section id="product1" className="section-p1">
               <div className="pro-container">
@@ -1395,7 +1507,7 @@ function AppContent() {
                       </div>
                       <div className="button-group">
                         <div className="tooltip">
-                          {!isProfileView ? (
+                          {!isProfileView && !isPaused ? (
                             <>
                               {!item.isAuction && (
                                 <button
@@ -1466,6 +1578,7 @@ function AppContent() {
             tokenId={selectedProduct.tokenId ? Number(selectedProduct.tokenId) : undefined}
             account={account}
             isProfileView={isProfileView}
+            isPaused={isPaused}
           />
         </Suspense>
       )}

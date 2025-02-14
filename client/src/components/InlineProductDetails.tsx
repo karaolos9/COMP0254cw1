@@ -42,6 +42,7 @@ interface InlineProductDetailsProps {
   tokenId?: number;
   account?: string | null;
   isProfileView?: boolean;
+  isPaused?: boolean;
 }
 
 interface Bid {
@@ -72,7 +73,8 @@ export default function InlineProductDetails({
   seller,
   tokenId,
   account,
-  isProfileView = false
+  isProfileView = false,
+  isPaused
 }: InlineProductDetailsProps) {
   const { addToCart, cartItems, removeFromCart } = useCart();
   const [bidAmount, setBidAmount] = useState<string>('');
@@ -639,49 +641,99 @@ export default function InlineProductDetails({
                     </div>
                   </div>
                   <div className="action-buttons">
-                    {isProfileView ? (
-                      <>
-                        {/* Profile view actions */}
-                        {!isListed ? (
-                          <>
-                            <button 
-                              className="list-button"
-                              onClick={handleStartListing}
-                            >
-                              <i className="fas fa-tag"></i>
-                              List for Sale
-                            </button>
-                            <button 
-                              className="auction-button"
-                              onClick={handleStartAuction}
-                            >
-                              <i className="fas fa-gavel"></i>
-                              Start Auction
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            {!isAuction ? (
-                              <>
-                                <button
-                                  className="cancel-listing-button"
-                                  onClick={handleCancelListing}
-                                  disabled={isAuction || isCancelling}
-                                  title={isAuction ? "Cannot cancel an active auction" : "Cancel listing"}
-                                >
-                                  {isCancelling ? (
-                                    <>
-                                      <i className="fas fa-spinner fa-spin"></i>
-                                      Cancelling...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <i className="fas fa-times"></i>
-                                      Cancel Listing
-                                    </>
+                    {!isPaused ? (
+                      isProfileView ? (
+                        <>
+                          {/* Profile view actions */}
+                          {!isListed ? (
+                            <>
+                              <button 
+                                className="list-button"
+                                onClick={handleStartListing}
+                              >
+                                <i className="fas fa-tag"></i>
+                                List for Sale
+                              </button>
+                              <button 
+                                className="auction-button"
+                                onClick={handleStartAuction}
+                              >
+                                <i className="fas fa-gavel"></i>
+                                Start Auction
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              {!isAuction ? (
+                                <>
+                                  <button
+                                    className="cancel-listing-button"
+                                    onClick={handleCancelListing}
+                                    disabled={isAuction || isCancelling}
+                                    title={isAuction ? "Cannot cancel an active auction" : "Cancel listing"}
+                                  >
+                                    {isCancelling ? (
+                                      <>
+                                        <i className="fas fa-spinner fa-spin"></i>
+                                        Cancelling...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <i className="fas fa-times"></i>
+                                        Cancel Listing
+                                      </>
+                                    )}
+                                  </button>
+                                  {!isAuction && (
+                                    <button 
+                                      className="auction-button"
+                                      onClick={handleStartAuction}
+                                    >
+                                      <i className="fas fa-gavel"></i>
+                                      Start Auction
+                                    </button>
                                   )}
+                                </>
+                              ) : (
+                                <button 
+                                  className="view-auction-button"
+                                  onClick={() => {
+                                    const auctionSection = document.querySelector('.auction-section');
+                                    auctionSection?.scrollIntoView({ behavior: 'smooth' });
+                                  }}
+                                >
+                                  <i className="fas fa-gavel"></i>
+                                  View Auction
                                 </button>
-                                {!isAuction && (
+                              )}
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {/* Main view actions */}
+                          {isOwner || account?.toLowerCase() === seller?.toLowerCase() ? (
+                            <>
+                              {!isAuction ? (
+                                <>
+                                  <button
+                                    className="cancel-listing-button"
+                                    onClick={handleCancelListing}
+                                    disabled={isAuction || isCancelling}
+                                    title={isAuction ? "Cannot cancel an active auction" : "Cancel listing"}
+                                  >
+                                    {isCancelling ? (
+                                      <>
+                                        <i className="fas fa-spinner fa-spin"></i>
+                                        Cancelling...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <i className="fas fa-times"></i>
+                                        Cancel Listing
+                                      </>
+                                    )}
+                                  </button>
                                   <button 
                                     className="auction-button"
                                     onClick={handleStartAuction}
@@ -689,113 +741,65 @@ export default function InlineProductDetails({
                                     <i className="fas fa-gavel"></i>
                                     Start Auction
                                   </button>
-                                )}
-                              </>
-                            ) : (
-                             <button 
-                                className="view-auction-button"
-                                onClick={() => {
-                                  const auctionSection = document.querySelector('.auction-section');
-                                  auctionSection?.scrollIntoView({ behavior: 'smooth' });
-                                }}
-                              >
-                                <i className="fas fa-gavel"></i>
-                                View Auction
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        {/* Main view actions */}
-                        {isOwner || account?.toLowerCase() === seller?.toLowerCase() ? (
-                          <>
-                            {!isAuction ? (
-                              <>
-                                <button
-                                  className="cancel-listing-button"
-                                  onClick={handleCancelListing}
-                                  disabled={isAuction || isCancelling}
-                                  title={isAuction ? "Cannot cancel an active auction" : "Cancel listing"}
-                                >
-                                  {isCancelling ? (
-                                    <>
-                                      <i className="fas fa-spinner fa-spin"></i>
-                                      Cancelling...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <i className="fas fa-times"></i>
-                                      Cancel Listing
-                                    </>
-                                  )}
-                                </button>
+                                </>
+                              ) : (
                                 <button 
-                                  className="auction-button"
-                                  onClick={handleStartAuction}
+                                  className="view-auction-button"
+                                  onClick={() => {
+                                    const auctionSection = document.querySelector('.auction-section');
+                                    auctionSection?.scrollIntoView({ behavior: 'smooth' });
+                                  }}
                                 >
                                   <i className="fas fa-gavel"></i>
-                                  Start Auction
+                                  View Auction
                                 </button>
-                              </>
-                            ) : (
-                              <button 
-                                className="view-auction-button"
-                                onClick={() => {
-                                  const auctionSection = document.querySelector('.auction-section');
-                                  auctionSection?.scrollIntoView({ behavior: 'smooth' });
-                                }}
-                              >
-                                <i className="fas fa-gavel"></i>
-                                View Auction
-                              </button>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            {/* Other customers */}
-                            {!isAuction && (
-                              <>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              {/* Other customers */}
+                              {!isAuction && (
+                                <>
+                                  <button 
+                                    className={`cart-button ${cartItems.some(item => item.id === ipfsHash) ? 'in-cart' : ''}`}
+                                    onClick={handleAddToCart}
+                                    disabled={isAuction}
+                                  >
+                                    <i className="fas fa-shopping-cart"></i>
+                                  </button>
+                                  <button
+                                    className="buy-now-button"
+                                    onClick={handleBuyNow}
+                                    disabled={isAuction}
+                                  >
+                                    Buy Now
+                                  </button>
+                                </>
+                              )}
+                              {isAuction && (
                                 <button 
-                                  className={`cart-button ${cartItems.some(item => item.id === ipfsHash) ? 'in-cart' : ''}`}
-                                  onClick={handleAddToCart}
-                                  disabled={isAuction}
+                                  className="view-auction-button"
+                                  onClick={() => {
+                                    const auctionSection = document.querySelector('.auction-section');
+                                    auctionSection?.scrollIntoView({ behavior: 'smooth' });
+                                  }}
                                 >
-                                  <i className="fas fa-shopping-cart"></i>
+                                  <i className="fas fa-gavel"></i>
+                                  View Auction
                                 </button>
-                                <button
-                                  className="buy-now-button"
-                                  onClick={handleBuyNow}
-                                  disabled={isAuction}
-                                >
-                                  Buy Now
-                                </button>
-                              </>
-                            )}
-                            {isAuction && (
-                              <button 
-                                className="view-auction-button"
-                                onClick={() => {
-                                  const auctionSection = document.querySelector('.auction-section');
-                                  auctionSection?.scrollIntoView({ behavior: 'smooth' });
-                                }}
-                              >
-                                <i className="fas fa-gavel"></i>
-                                View Auction
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </>
-                    )}
+                              )}
+                            </>
+                          )}
+                        </>
+                      )
+                    ) : null}
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Auction Section */}
-            {isAuction && (
+            {isAuction && !isPaused && (
               <div className={`auction-section ${isAuction ? 'active' : ''}`}>
                 <div className="auction-header">
                   <h3>Auction Details</h3>
