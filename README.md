@@ -137,7 +137,7 @@ There is a filter on the left, you will be ablve to filter the properties of the
 
 # Security Considerations
 
-# PokemonNFT Security
+## PokemonNFT Security
 
 - Reentrancy Attacks:
 Uses ReentrancyGuard for added security.
@@ -154,7 +154,7 @@ Uses ERC721 safe transfer functions.
 - Pause Functionality:
 Owner can pause/unpause operations.
 
-# TradingContractCW1 Security
+## TradingContractCW1 Security
 - Reentrancy Attacks:
 Uses ReentrancyGuard to prevent reentrancy attacks in functions that handle NFT transfers and payments. Functions like placeBid(), buyCard(), and finalizeAuction() use nonReentrant to ensure that calls cannot be exploited recursively.
 
@@ -178,9 +178,9 @@ The contract includes pause and unpause functions (pause() and unpause()) that a
 
 # Backend
 
-# PokemonNFT
+## PokemonNFT
 
-# Main Functions
+### Main Functions
 - Minting:
 Create a new Pokémon NFT with stats (HP, Attack, Defense, etc.).
 
@@ -193,7 +193,7 @@ The owner can pause/unpause contract functions.
 - Access Control:
 Only the contract owner can mint new Pokémon.
 
-- Execution Flow:
+### Execution Flow:
 cardIdCounter: Tracks total NFTs minted (each new card gets a sequential ID).
 PokemonType: Defines all possible Pokemon types (Normal, Fire, Water, etc).
 mintCard():	Owner mints an NFT to a user.
@@ -203,9 +203,9 @@ pokemonData[tokenId]:	Saves Pokémon stats.
 CardMinted event:	Logs the NFT creation on-chain.
 getPokemonStats(tokenId):	Fetches Pokémon stats.
 
-# TradingContractCW1
+## TradingContractCW1
 
-# Main Functions
+### Main Functions
 - listCard(uint256 tokenId, uint256 price):
 Lists an NFT for a fixed price sale. Ensures the caller is the NFT owner, transfers NFT to the contract, stores the listing, and emits an event.
 
@@ -230,7 +230,7 @@ Finalizes an auction after it ends. Transfers NFT to the highest bidder, sends E
 - unpause():
 (imported from openzeppelin Ownable) Resumes trading functions, only the owner can unpause contract operations.
 
-# Execution Flow
+### Execution Flow
 listNFT(tokenId, price):	Owner lists an NFT for sale.
 approve(address(this), tokenId):	The owner approves the contract to transfer their NFT.
 buyNFT(tokenId):	Buyer purchases the NFT by sending ETH.
