@@ -1,5 +1,13 @@
-# CW1 dApp Project
+# CW1 dApp Project Overview
 This project is a dApp for Pokémons NFT Trading. It has two contracts, and React as frontend
+
+# Solidity
+
+# React
+
+
+# Pinata
+We use **Pinata** to store NFT images securely on **IPFS**, ensuring decentralized and tamper-proof storage. To prevent **CORS issues**, we utilize a **proxy server** that acts as an intermediary, allowing stable communication between our React frontend and the IPFS network via Pinata’s API.
 
 # Use of GenAI
 We have used GenAI to streamline our workflow, assisting with tasks like CSS editing, scripting, and implementing various functionalities, allowing us to work more efficiently and focus on core development, including contracts, core front-end functionalities and integration of components.
@@ -34,14 +42,18 @@ TRADING_CONTRACT: 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9
 ```
 
 # Step 4: Update Contract Addresses in Frontend
-- Open `client/src/config.js`
-- Paste the contract addresses under **CONTRACT_ADDRESSES** like this:
+- Open `client`, create .env file and add the contract addresses like this, do not change variable name:
 
-```javascript
-export const CONTRACT_ADDRESSES = {
-  NFT_CONTRACT: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
-  TRADING_CONTRACT: "0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9"
-};
+```
+VITE_NFT_CONTRACT_ADDRESS=0x5FbDB2315678afecb367f032d93F642f64180aa3
+VITE_TRADING_CONTRACT_ADDRESS=0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+```
+
+- And add our Pinata JSON Web Token for later use (No need to change, just copy and paste):
+- This JWT is for user, with only the ability to read but not write.
+
+```
+VITE_PINATA_JWT_USER=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiIzMTdjMDVkZi0wMDIwLTRiMTUtOTM1NC00OThlMzYyZWNhMmUiLCJlbWFpbCI6IjA3MTVzdG9uZUBnbWFpbC5jb20iLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwicGluX3BvbGljeSI6eyJyZWdpb25zIjpbeyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJGUkExIn0seyJkZXNpcmVkUmVwbGljYXRpb25Db3VudCI6MSwiaWQiOiJOWUMxIn1dLCJ2ZXJzaW9uIjoxfSwibWZhX2VuYWJsZWQiOmZhbHNlLCJzdGF0dXMiOiJBQ1RJVkUifSwiYXV0aGVudGljYXRpb25UeXBlIjoic2NvcGVkS2V5Iiwic2NvcGVkS2V5S2V5IjoiNTAxMGFmNGFmOGRhOWY4YzI4M2EiLCJzY29wZWRLZXlTZWNyZXQiOiIwODlkYWVmYmYzNWE0MGM2MzlkMzAxZTZmYTg0MTgwM2IzMTExYmE0MTAzZmU1NmEzMjA5OGRmOTZiYWMwZmE4IiwiZXhwIjoxNzcwMTM5MzQ5fQ.ZoS2lz-OBYyxps6BnTIWnaz3gMb-vSZggLlHelt5Cz4
 ```
 
 ------------------
@@ -84,6 +96,14 @@ In MetaMask, click your profile icon, then "Import Account".
 Paste the private key and click "Import".
 Now Your MetaMask wallet is now connected to the local blockchain with test ETH.
 
+# Step 3: Continue setting up .env
+In the .env file fron earlier, add the network configuration.
+```
+VITE_CHAIN_ID=0x7A69
+VITE_RPC_URL=http://127.0.0.1:8545
+VITE_CHAIN_ID_INTEGER=31337
+```
+
 ------------------
 
 # Webpage Deployment
@@ -103,3 +123,5 @@ npm run dev
 ```
 
 The app should now be live at **http://localhost:5173/**.
+
+

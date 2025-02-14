@@ -1,24 +1,21 @@
 import { NFT_ABI, TRADING_ABI } from './contracts/abis';
 
 export const CONTRACT_ADDRESSES = {
-  NFT_CONTRACT: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
-  TRADING_CONTRACT: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+  NFT_CONTRACT: import.meta.env.VITE_NFT_CONTRACT_ADDRESS,
+  TRADING_CONTRACT: import.meta.env.VITE_TRADING_CONTRACT_ADDRESS,
 };
 
-// Pinata configuration
-export const PINATA_BASE_URL = 'https://api.pinata.cloud';
+export const PINATA_BASE_URL = import.meta.env.VITE_PINATA_BASE_URL;
 
-// Network configuration for local Hardhat network
 export const NETWORK_CONFIG = {
-  chainId: "0x7A69", // 31337 in hex
+  chainId: parseInt(import.meta.env.VITE_CHAIN_ID, 10),
+  rpcUrls: [import.meta.env.VITE_RPC_URL],
   chainName: "Hardhat Local",
   nativeCurrency: {
     name: "Ethereum",
     symbol: "ETH",
     decimals: 18
   },
-  rpcUrls: ["http://127.0.0.1:8545"],
-  blockExplorerUrls: []
 };
 
 // Contract ABIs
@@ -31,4 +28,4 @@ export const CONTRACT_ABIS = {
 export const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
 
 // Chain ID in decimal for easy comparison
-export const SUPPORTED_CHAIN_ID = 31337; // Hardhat's chain ID 
+export const SUPPORTED_CHAIN_ID = parseInt(import.meta.env.VITE_CHAIN_ID_INTEGER, 10); // Hardhat's chain ID 

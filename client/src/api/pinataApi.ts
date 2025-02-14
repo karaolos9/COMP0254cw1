@@ -1,14 +1,11 @@
-import { PINATA_BASE_URL } from '../config';
-
-const PINATA_JWT = import.meta.env.VITE_PINATA_JWT_ADMIN;
+const PINATA_JWT = import.meta.env.VITE_PINATA_JWT_USER;
 
 // Add delay between requests to prevent rate limiting
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function fetchPinataItems() {
   try {
-    // Use the proxy URL instead of direct Pinata URL
-    const response = await fetch(`${PINATA_BASE_URL}/data/pinList?pageLimit=100`, {
+    const response = await fetch('/api/pinata/data/pinList?pageLimit=100', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${PINATA_JWT}`,
@@ -18,7 +15,6 @@ export async function fetchPinataItems() {
     
     if (!response.ok) {
       if (response.status === 429) {
-        // If rate limited, wait and try again
         await delay(1000);
         return fetchPinataItems();
       }
@@ -26,7 +22,6 @@ export async function fetchPinataItems() {
     }
     
     const data = await response.json();
-    console.log('Pinata response:', data);
     return data;
   } catch (error) {
     console.error('Error fetching from Pinata:', error);
@@ -36,8 +31,8 @@ export async function fetchPinataItems() {
 
 export async function fetchPinataItemById(id: string) {
   try {
-    await delay(500); // Add delay to prevent rate limiting
-    const response = await fetch(`${PINATA_BASE_URL}/data/pinList?hashContains=${id}`, {
+    await delay(500);
+    const response = await fetch(`/api/pinata/data/pinList?hashContains=${id}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${PINATA_JWT}`,
